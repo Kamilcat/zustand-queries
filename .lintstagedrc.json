@@ -1,0 +1,6 @@
+{
+  "*.(js|ts|cjs|cts|mjs|mts)": [
+    "prettier --write",
+    "eslint"
+  ]
+}
