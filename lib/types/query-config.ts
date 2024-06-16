@@ -31,6 +31,6 @@ export type Queries = Record<string, AsyncFunction | QueryConfig>
 export type Mutations = Record<string, AsyncFunction>
 
 export interface QueryStore extends QueryInit {
-	queries: Queries
+	queries?: Queries
 	mutations?: Mutations
 }

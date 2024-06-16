@@ -1,12 +1,13 @@
 import type { XOR } from 'ts-xor'
 import type { AsyncFunction } from './utils'
 
-interface PendingQueryResponse {
+export interface PendingQueryResponse {
 	isLoading: boolean
+	promise: Promise<void>
 }
 
-interface SuccessQueryResponse<R extends AsyncFunction> extends PendingQueryResponse {
-	data: Awaited<ReturnType<R>>
+interface SuccessQueryResponse<A extends AsyncFunction> extends PendingQueryResponse {
+	data: Awaited<ReturnType<A>>
 	isSuccess: true
 }
 
@@ -15,7 +16,7 @@ interface ErrorQueryResponse extends PendingQueryResponse {
 	isError: true
 }
 
-export type QueryResponse<R extends AsyncFunction> = XOR<
-	SuccessQueryResponse<R>,
+export type QueryResponse<A extends AsyncFunction> = XOR<
+	SuccessQueryResponse<A>,
 	ErrorQueryResponse
 >

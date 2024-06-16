@@ -1,17 +1,16 @@
-import type { ExtractQuery, Queries, QueryConfig, QueryStore } from './query-config'
+import type { CacheMap } from './cache'
+import type { ExtractQuery, QueryConfig, QueryInit, QueryStore } from './query-config'
 import type { QueryResponse } from './query-response'
-import type { AsyncFunction, Stringified } from './utils'
+import type { AsyncFunction } from './utils'
 
-export interface QueryCache<T extends Queries> {
-	cache: Map<
-		keyof T,
-		Map<
-			Stringified<Parameters<ExtractQuery<T[keyof T]>>>,
-			Awaited<ReturnType<ExtractQuery<T[keyof T]>>>
-		>
-	>
-	invalidate: (query: keyof T, args: Parameters<ExtractQuery<T[keyof T]>>) => void
-	update: (query: keyof T, args: Parameters<ExtractQuery<T[keyof T]>>) => void
+export interface QueryCache<C extends QueryInit> {
+	cache: CacheMap
+	invalidate: <A extends AsyncFunction>(queryFn: A, args: Parameters<A>) => void
+	update: <A extends AsyncFunction>(queryFn: A, args: Parameters<A>) => void
+	useQuery: <A extends AsyncFunction>(
+		queryFn: A,
+		args: Parameters<A>
+	) => C['suspense'] extends true ? Awaited<ReturnType<A>> : QueryResponse<A>
 }
 
 type QueryAction<F extends AsyncFunction> = (...args: Parameters<F>) => QueryResponse<F>
@@ -20,7 +19,7 @@ type SuspensedQueryAction<F extends AsyncFunction> = (
 	...args: Parameters<F>
 ) => Awaited<ReturnType<F>>
 
-type QueryActions<T extends QueryStore> = {
+export type QueryActions<T extends QueryStore> = {
 	[key in keyof T['queries']]: T['suspense'] extends true
 		? T['queries'][key] extends QueryConfig
 			? T['queries'][key]['suspense'] extends false
@@ -34,10 +33,8 @@ type QueryActions<T extends QueryStore> = {
 			: QueryAction<ExtractQuery<T['queries'][key]>>
 }
 
-type MutationActions<T extends QueryStore> = {
+export type MutationActions<T extends QueryStore> = {
 	[key in keyof T['mutations']]: T['mutations'][key]
 }
 
-export type ZustandQueries<S extends QueryStore> = QueryCache<S['queries']> &
-	QueryActions<S> &
-	MutationActions<S>
+export type ZustandQueries<S extends QueryStore> = QueryCache<S>
