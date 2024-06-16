@@ -51,7 +51,7 @@
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --ignore-path .gitignore",
     "lint:fix": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "test:unit": "vitest --ui --coverage",
-    "format": "prettier --write src/",
+    "format": "prettier --write lib/",
     "prepare": "husky install",
     "coverage": "vitest run --coverage"
   },
