@@ -5,11 +5,11 @@ import type { AsyncFunction } from './utils'
 
 export interface QueryCache<C extends QueryInit> {
 	cache: CacheMap
-	invalidate: <A extends AsyncFunction>(queryFn: A, args: Parameters<A>) => void
-	update: <A extends AsyncFunction>(queryFn: A, args: Parameters<A>) => void
+	invalidate: <A extends AsyncFunction>(queryFn: A, args?: Parameters<A>) => void
+	update: <A extends AsyncFunction>(queryFn: A, args?: Parameters<A>) => void
 	useQuery: <A extends AsyncFunction>(
 		queryFn: A,
-		args: Parameters<A>
+		args?: Parameters<A>
 	) => C['suspense'] extends true ? Awaited<ReturnType<A>> : QueryResponse<A>
 }
 

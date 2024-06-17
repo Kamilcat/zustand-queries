@@ -6,10 +6,11 @@ import type { ZustandQueries } from './types/store'
 import type { Stringified } from './types/utils'
 
 export const createClient =
-	<T extends QueryStore>(queryStoreProto: T): StateCreator<ZustandQueries<T>> =>
+	<T extends QueryStore>(queryStoreProto?: T): StateCreator<ZustandQueries<T>> =>
 	(set, get) => ({
 		cache: new Map() as CacheMap,
-		invalidate(queryFn, args) {
+		// @ts-expect-error
+		invalidate(queryFn, args = []) {
 			const cache = get().cache
 			const queryCache = cache.get(queryFn) ?? cache.set(queryFn, new Map()).get(queryFn)!
 			const queryArgs = JSON.stringify(args) as unknown as Stringified<typeof args>
@@ -18,14 +19,15 @@ export const createClient =
 				set({ cache: new Map(get().cache) as CacheMap })
 			}
 		},
-		update(queryFn, args) {
+		// @ts-expect-error
+		update(queryFn, args = []) {
 			const state = get()
 			state.invalidate(queryFn, args)
 			state.useQuery(queryFn, args)
 		},
 		// @ts-expect-error
-		useQuery(queryFn, args) {
-			const queryConfig: QueryInit = queryStoreProto
+		useQuery(queryFn, args = []) {
+			const queryConfig: QueryInit = queryStoreProto ?? {}
 			const cache = get().cache
 			const queryCache = cache.get(queryFn) ?? cache.set(queryFn, new Map()).get(queryFn)!
 			const queryArgs = JSON.stringify(args) as unknown as Stringified<typeof args>
