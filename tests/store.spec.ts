@@ -7,7 +7,7 @@ import { ZustandQueries } from '../lib/types/store'
 let cacheStore: StoreApi<ZustandQueries<{}>>
 
 beforeEach(() => {
-	cacheStore = createStore(createClient({}))
+	cacheStore = createStore(createClient())
 })
 
 describe('Zustand with Vanilla JS', () => {
@@ -22,7 +22,7 @@ describe('Zustand with Vanilla JS', () => {
 	})
 
 	it('executes query and caches result', () => {
-		const asyncFunction = (x: number) => Promise.resolve(x * 2)
+		const asyncFunction = (x?: number) => Promise.resolve((x ?? 35) * 2)
 		const state = cacheStore.getState()
 		const queryResult = state.useQuery(asyncFunction, [15])
 
@@ -63,7 +63,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Not cached query
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(asyncFunction, [10])
+			const resolvedQueryResult = state.useQuery(asyncFunction)
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isLoading')
 			expect(resolvedQueryResult.isLoading).toBeTruthy()
