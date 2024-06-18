@@ -1,8 +1,21 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createStore, StoreApi } from 'zustand'
 import { createClient } from '../lib'
 import { ZustandQueries } from '../lib/types/store'
+
+const mockFn = {
+	success: vi.fn((integer: number) => Promise.resolve(integer * 2)),
+	error: vi.fn().mockRejectedValue('something went wrong'),
+	errorThenSuccess: vi
+		.fn()
+		.mockRejectedValueOnce('error happend on first try')
+		.mockResolvedValue(1000),
+	successThenError: vi
+		.fn()
+		.mockResolvedValueOnce('post title')
+		.mockRejectedValue('500 server error')
+}
 
 let cacheStore: StoreApi<ZustandQueries<{}>>
 
@@ -21,10 +34,11 @@ describe('Zustand with Vanilla JS', () => {
 		expect(state).toHaveProperty('useQuery')
 	})
 
-	it('executes query and caches result', () => {
-		const asyncFunction = (x?: number) => Promise.resolve((x ?? 35) * 2)
+	it('executes query and caches result for given arguments', () => {
 		const state = cacheStore.getState()
-		const queryResult = state.useQuery(asyncFunction, [15])
+
+		// Call query mockFn.success with argument 15
+		const queryResult = state.useQuery(mockFn.success, [15])
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -39,9 +53,9 @@ describe('Zustand with Vanilla JS', () => {
 		expect(queryResult).not.toHaveProperty('error')
 		expect(queryResult).not.toHaveProperty('isError')
 
-		// First call
+		// Re-call to check if result for argument 15 is cached
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(asyncFunction, [15])
+			const resolvedQueryResult = state.useQuery(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isSuccess')
 			expect(resolvedQueryResult.isSuccess).toBeTruthy()
@@ -50,9 +64,9 @@ describe('Zustand with Vanilla JS', () => {
 			expect(resolvedQueryResult.data).equals(30)
 		})
 
-		// Call again to check if result didn't change
+		// Call again to check if cached result didn't change
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(asyncFunction, [15])
+			const resolvedQueryResult = state.useQuery(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isSuccess')
 			expect(resolvedQueryResult.isSuccess).toBeTruthy()
@@ -63,12 +77,49 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Not cached query
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(asyncFunction)
+			const resolvedQueryResult = state.useQuery(mockFn.success)
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isLoading')
 			expect(resolvedQueryResult.isLoading).toBeTruthy()
 			expect(resolvedQueryResult).not.toHaveProperty('data')
 			expect(resolvedQueryResult).not.toHaveProperty('error')
+		})
+	})
+
+	it('serves promise caught error', () => {
+		expect(cacheStore).toBeDefined()
+
+		const state = cacheStore.getState()
+		const queryResult = state.useQuery(mockFn.error)
+
+		expect(queryResult).toBeTypeOf('object')
+
+		expect(queryResult).toHaveProperty('isLoading')
+		expect(queryResult.isLoading).toBeTruthy()
+
+		expect(queryResult).toHaveProperty('promise')
+		expect(queryResult.promise).toBeInstanceOf(Promise)
+
+		expect(queryResult).not.toHaveProperty('data')
+		expect(queryResult).not.toHaveProperty('isSuccess')
+		expect(queryResult).not.toHaveProperty('error')
+		expect(queryResult).not.toHaveProperty('isError')
+
+		setTimeout(() => {
+			const rejectedQueryResult = state.useQuery(mockFn.error)
+			expect(rejectedQueryResult).toBeTypeOf('object')
+			expect(rejectedQueryResult).toHaveProperty('isLoading')
+			expect(rejectedQueryResult.isLoading).toBeFalsy()
+
+			expect(rejectedQueryResult).toHaveProperty('isError')
+			expect(rejectedQueryResult.isError).toBeTruthy()
+
+			expect(rejectedQueryResult).toHaveProperty('error')
+			expect(rejectedQueryResult.error).toBeTypeOf('string')
+			expect(rejectedQueryResult.error).equals('something went wrong')
+
+			expect(rejectedQueryResult).not.toHaveProperty('data')
+			expect(rejectedQueryResult).not.toHaveProperty('isSuccess')
 		})
 	})
 })
