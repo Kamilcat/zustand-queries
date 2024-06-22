@@ -17,7 +17,7 @@ const mockFn = {
 		.mockRejectedValue('500 server error')
 }
 
-let cacheStore: StoreApi<ZustandQueries<{}>>
+let cacheStore: StoreApi<ZustandQueries>
 
 beforeEach(() => {
 	cacheStore = createStore(createClient())
@@ -30,8 +30,8 @@ describe('Zustand with Vanilla JS', () => {
 		const state = cacheStore.getState()
 		expect(state).toHaveProperty('cache')
 		expect(state).toHaveProperty('invalidate')
-		expect(state).toHaveProperty('update')
 		expect(state).toHaveProperty('useQuery')
+		expect(state).toHaveProperty('useSuspendedQuery')
 	})
 
 	it('executes query and caches result for given arguments', () => {
@@ -77,7 +77,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Not cached query
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(mockFn.success)
+			const resolvedQueryResult = state.useQuery(mockFn.success, [1])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isLoading')
 			expect(resolvedQueryResult.isLoading).toBeTruthy()
@@ -90,7 +90,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(cacheStore).toBeDefined()
 
 		const state = cacheStore.getState()
-		const queryResult = state.useQuery(mockFn.error)
+		const queryResult = state.useQuery(mockFn.error, [])
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -106,7 +106,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(queryResult).not.toHaveProperty('isError')
 
 		setTimeout(() => {
-			const rejectedQueryResult = state.useQuery(mockFn.error)
+			const rejectedQueryResult = state.useQuery(mockFn.error, [])
 			expect(rejectedQueryResult).toBeTypeOf('object')
 			expect(rejectedQueryResult).toHaveProperty('isLoading')
 			expect(rejectedQueryResult.isLoading).toBeFalsy()

@@ -1,9 +1,6 @@
 import type { AsyncFunction } from './utils'
 
 export interface QueryInit {
-	/** Enable suspense-mode for using with React <Suspense /> */
-	suspense?: boolean
-
 	/** Query cache lifetime */
 	lifetime?: number
 
