@@ -4,14 +4,23 @@ export interface QueryInit {
 	/** Query cache lifetime */
 	lifetime?: number
 
-	/** Automatically re-fetch query, when it's cache lifetime expired  */
+	/** Automatically re-fetch query, when it's cache lifetime expired
+	 * @default false
+	 */
 	refetch?: boolean
 
 	/** Re-try after catching error */
 	retry?: boolean
 
-	/** Return previous stale value, while fetching new one */
+	/** Return previous stale value, while fetching new one
+	 * @default false
+	 */
 	stale?: boolean
+
+	/** Automatically fetch query
+	 * @default true
+	 */
+	autofetch?: boolean
 }
 
 export interface QueryConfig extends QueryInit {

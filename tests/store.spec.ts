@@ -42,23 +42,19 @@ describe('Zustand with Vanilla JS', () => {
 
 		expect(queryResult).toBeTypeOf('object')
 
-		expect(queryResult).toHaveProperty('isLoading')
-		expect(queryResult.isLoading).toBeTruthy()
+		expect(queryResult).toHaveProperty('loading')
+		expect(queryResult.loading).toBeTruthy()
 
 		expect(queryResult).toHaveProperty('promise')
 		expect(queryResult.promise).toBeInstanceOf(Promise)
 
 		expect(queryResult).not.toHaveProperty('data')
-		expect(queryResult).not.toHaveProperty('isSuccess')
 		expect(queryResult).not.toHaveProperty('error')
-		expect(queryResult).not.toHaveProperty('isError')
 
 		// Re-call to check if result for argument 15 is cached
 		setTimeout(() => {
 			const resolvedQueryResult = useQuery(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
-			expect(resolvedQueryResult).toHaveProperty('isSuccess')
-			expect(resolvedQueryResult.isSuccess).toBeTruthy()
 			expect(resolvedQueryResult).toHaveProperty('data')
 			expect(resolvedQueryResult.data).toBeTypeOf('number')
 			expect(resolvedQueryResult.data).equals(30)
@@ -68,8 +64,6 @@ describe('Zustand with Vanilla JS', () => {
 		setTimeout(() => {
 			const resolvedQueryResult = useQuery(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
-			expect(resolvedQueryResult).toHaveProperty('isSuccess')
-			expect(resolvedQueryResult.isSuccess).toBeTruthy()
 			expect(resolvedQueryResult).toHaveProperty('data')
 			expect(resolvedQueryResult.data).toBeTypeOf('number')
 			expect(resolvedQueryResult.data).equals(30)
@@ -79,8 +73,8 @@ describe('Zustand with Vanilla JS', () => {
 		setTimeout(() => {
 			const resolvedQueryResult = useQuery(mockFn.success)
 			expect(resolvedQueryResult).toBeTypeOf('object')
-			expect(resolvedQueryResult).toHaveProperty('isLoading')
-			expect(resolvedQueryResult.isLoading).toBeTruthy()
+			expect(resolvedQueryResult).toHaveProperty('loading')
+			expect(resolvedQueryResult.loading).toBeTruthy()
 			expect(resolvedQueryResult).not.toHaveProperty('data')
 			expect(resolvedQueryResult).not.toHaveProperty('error')
 		})
@@ -94,32 +88,26 @@ describe('Zustand with Vanilla JS', () => {
 
 		expect(queryResult).toBeTypeOf('object')
 
-		expect(queryResult).toHaveProperty('isLoading')
-		expect(queryResult.isLoading).toBeTruthy()
+		expect(queryResult).toHaveProperty('loading')
+		expect(queryResult.loading).toBeTruthy()
 
 		expect(queryResult).toHaveProperty('promise')
 		expect(queryResult.promise).toBeInstanceOf(Promise)
 
 		expect(queryResult).not.toHaveProperty('data')
-		expect(queryResult).not.toHaveProperty('isSuccess')
 		expect(queryResult).not.toHaveProperty('error')
-		expect(queryResult).not.toHaveProperty('isError')
 
 		setTimeout(() => {
 			const rejectedQueryResult = state.useQuery(mockFn.error)
 			expect(rejectedQueryResult).toBeTypeOf('object')
-			expect(rejectedQueryResult).toHaveProperty('isLoading')
-			expect(rejectedQueryResult.isLoading).toBeFalsy()
-
-			expect(rejectedQueryResult).toHaveProperty('isError')
-			expect(rejectedQueryResult.isError).toBeTruthy()
+			expect(rejectedQueryResult).toHaveProperty('loading')
+			expect(rejectedQueryResult.loading).toBeFalsy()
 
 			expect(rejectedQueryResult).toHaveProperty('error')
 			expect(rejectedQueryResult.error).toBeTypeOf('string')
 			expect(rejectedQueryResult.error).equals('something went wrong')
 
 			expect(rejectedQueryResult).not.toHaveProperty('data')
-			expect(rejectedQueryResult).not.toHaveProperty('isSuccess')
 		})
 	})
 })

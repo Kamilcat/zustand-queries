@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { CacheMap, CacheRecord } from './types/cache'
 import type { QueryInit, QueryStore } from './types/query-config'
-import type { PendingQueryResponse, QueryResponse } from './types/query-response'
+import type { QueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
@@ -65,15 +65,15 @@ export const createClient =
 						setCache(queryFn, queryArgs, {
 							data,
 							promise,
-							isSuccess: true,
-							isLoading: false
+							loading: false,
+							refetch: () => {}
 						}),
 					(error: unknown) =>
 						setCache(queryFn, queryArgs, {
 							error,
 							promise,
-							isError: true,
-							isLoading: false
+							loading: false,
+							refetch: () => {}
 						})
 				)
 				.finally(() => {
@@ -91,11 +91,11 @@ export const createClient =
 			queryArgs: Stringified<Parameters<A>>,
 			queryInit?: QueryInit
 		) {
-			const queryResult = {
+			const queryResult: QueryResponse<typeof queryFn> = {
 				promise: fetchPromise(queryFn, args, queryArgs, queryInit),
-				isLoading: true
-			} as PendingQueryResponse
-			// @ts-expect-error
+				loading: true,
+				refetch: () => {}
+			}
 			queryCache.set(queryArgs, queryResult)
 			return queryResult
 		}
@@ -114,10 +114,9 @@ export const createClient =
 				const [queryCache, queryArgs] = getCache(queryFn, args)
 				const queryResult = queryCache.get(queryArgs)
 				if (queryResult) {
-					if (queryResult.isError) throw queryResult.error
+					if ('error' in queryResult) throw queryResult.error
 					// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-					if (queryResult.isSuccess) return queryResult.data
-					// @ts-expect-error
+					if ('data' in queryResult) return queryResult.data
 					throw queryResult.promise
 				}
 				throw getPendingQueryResult(queryFn, args, queryCache, queryArgs, queryInit).promise
