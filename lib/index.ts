@@ -5,14 +5,17 @@ import type { QueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
-type CacheSerializer = <T extends any[]>(obj: T) => Stringified<T>
-// @ts-expect-error
-const serialize: CacheSerializer = JSON.stringify
+const autoFetch: QueryStore = {
+	autofetch: true
+}
+
+const defaultConfig: QueryStore = {
+	...autoFetch,
+	lifetime: 300000
+}
 
 export const createClient =
-	<T extends QueryStore>(
-		queryStoreProto = { autofetch: true } as T
-	): StateCreator<ZustandQueries> =>
+	<T extends QueryStore>(queryStoreProto: T = defaultConfig as T): StateCreator<ZustandQueries> =>
 	// @ts-expect-error
 	(set, get) => {
 		function getCache<A extends AsyncFunction>(
@@ -21,7 +24,7 @@ export const createClient =
 		): [CacheRecord<A>, Stringified<Parameters<A>>] {
 			const cache = get().cache
 			const queryCache = cache.get(queryFn) ?? cache.set(queryFn, new Map()).get(queryFn)!
-			const queryArgs = serialize(args)
+			const queryArgs = JSON.stringify(args) as unknown as Stringified<Parameters<A>>
 			return [queryCache, queryArgs]
 		}
 
@@ -39,10 +42,15 @@ export const createClient =
 			newState: QueryResponse<A>
 		) {
 			set(
-				(state) => (
-					state.cache.get(queryFn)!.set(queryArgs, newState),
-					{ cache: new Map(state.cache) as CacheMap }
-				)
+				(state) =>
+					(
+						/**
+						 * `setCache` called strongly after `getCache`:
+						 * `getCache` guarantees that cache for `queryFn` is created
+						 */
+						state.cache.get(queryFn)!.set(queryArgs, newState),
+						{ cache: new Map(state.cache) as CacheMap }
+					)
 			)
 		}
 
@@ -57,7 +65,14 @@ export const createClient =
 				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
 				: (queryStoreProto as QueryInit)
 
-			const refetch = () => fetchPromise(queryFn, args, queryCache, queryArgs, queryInit)
+			const refetch = () =>
+				fetchPromise(
+					queryFn,
+					args,
+					queryCache,
+					queryArgs,
+					Object.setPrototypeOf(autoFetch, queryConfig) as QueryInit
+				)
 
 			const promise: Promise<void> = queryConfig.autofetch
 				? // eslint-disable-next-line prefer-spread
@@ -79,11 +94,7 @@ export const createClient =
 									refetch
 								})
 						)
-						.finally(() => {
-							if (queryConfig.lifetime) {
-								setTimeout(() => deleteCache(queryFn, args), queryConfig.lifetime)
-							}
-						})
+						.finally(() => setTimeout(() => deleteCache(queryFn, args), queryConfig.lifetime))
 				: Promise.resolve()
 			const queryResult: QueryResponse<A> = {
 				refetch,
