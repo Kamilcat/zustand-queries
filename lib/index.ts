@@ -5,18 +5,18 @@ import type { PendingQueryResponse, QueryResponse } from './types/query-response
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
-type CacheSerializer = <T extends any[] = []>(obj: T) => Stringified<T>
+type CacheSerializer = <T extends any[]>(obj: T) => Stringified<T>
 // @ts-expect-error
 const serialize: CacheSerializer = JSON.stringify
 
 export const createClient =
-	<T extends QueryStore>(queryStoreProto?: T): StateCreator<ZustandQueries> =>
+	<T extends QueryStore>(queryStoreProto = {} as T): StateCreator<ZustandQueries> =>
 	// @ts-expect-error
 	(set, get) => {
 		function resolveQueryConfig(queryInit?: QueryInit): QueryInit {
 			return queryInit
-				? (Object.setPrototypeOf(queryInit, queryStoreProto ?? {}) as QueryInit)
-				: ((queryStoreProto ?? {}) as QueryInit)
+				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
+				: (queryStoreProto as QueryInit)
 		}
 
 		function getCache<A extends AsyncFunction>(
@@ -102,11 +102,15 @@ export const createClient =
 
 		return {
 			cache: new Map() as CacheMap,
-			invalidate(queryFn, args) {
+			invalidate<A extends AsyncFunction>(queryFn: A, args = [] as unknown as Parameters<A>) {
 				deleteCache(queryFn, args)
 				get().useQuery(queryFn, args)
 			},
-			useSuspendedQuery(queryFn, args, queryInit?: QueryInit) {
+			useSuspendedQuery<A extends AsyncFunction>(
+				queryFn: A,
+				args = [] as unknown as Parameters<A>,
+				queryInit?: QueryInit
+			) {
 				const [queryCache, queryArgs] = getCache(queryFn, args)
 				const queryResult = queryCache.get(queryArgs)
 				if (queryResult) {
@@ -118,7 +122,11 @@ export const createClient =
 				}
 				throw getPendingQueryResult(queryFn, args, queryCache, queryArgs, queryInit).promise
 			},
-			useQuery(queryFn, args, queryInit?: QueryInit) {
+			useQuery<A extends AsyncFunction>(
+				queryFn: A,
+				args = [] as unknown as Parameters<A>,
+				queryInit?: QueryInit
+			) {
 				const [queryCache, queryArgs] = getCache(queryFn, args)
 				return queryCache.has(queryArgs)
 					? queryCache.get(queryArgs)!

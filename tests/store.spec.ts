@@ -35,10 +35,10 @@ describe('Zustand with Vanilla JS', () => {
 	})
 
 	it('executes query and caches result for given arguments', () => {
-		const state = cacheStore.getState()
+		const { useQuery } = cacheStore.getState()
 
 		// Call query mockFn.success with argument 15
-		const queryResult = state.useQuery(mockFn.success, [15])
+		const queryResult = useQuery(mockFn.success, [15])
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -55,7 +55,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Re-call to check if result for argument 15 is cached
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(mockFn.success, [15])
+			const resolvedQueryResult = useQuery(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isSuccess')
 			expect(resolvedQueryResult.isSuccess).toBeTruthy()
@@ -66,7 +66,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Call again to check if cached result didn't change
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(mockFn.success, [15])
+			const resolvedQueryResult = useQuery(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isSuccess')
 			expect(resolvedQueryResult.isSuccess).toBeTruthy()
@@ -77,7 +77,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Not cached query
 		setTimeout(() => {
-			const resolvedQueryResult = state.useQuery(mockFn.success, [1])
+			const resolvedQueryResult = useQuery(mockFn.success)
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('isLoading')
 			expect(resolvedQueryResult.isLoading).toBeTruthy()
@@ -90,7 +90,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(cacheStore).toBeDefined()
 
 		const state = cacheStore.getState()
-		const queryResult = state.useQuery(mockFn.error, [])
+		const queryResult = state.useQuery(mockFn.error)
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -106,7 +106,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(queryResult).not.toHaveProperty('isError')
 
 		setTimeout(() => {
-			const rejectedQueryResult = state.useQuery(mockFn.error, [])
+			const rejectedQueryResult = state.useQuery(mockFn.error)
 			expect(rejectedQueryResult).toBeTypeOf('object')
 			expect(rejectedQueryResult).toHaveProperty('isLoading')
 			expect(rejectedQueryResult.isLoading).toBeFalsy()
