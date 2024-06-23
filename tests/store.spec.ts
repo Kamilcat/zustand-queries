@@ -110,4 +110,34 @@ describe('Zustand with Vanilla JS', () => {
 			expect(rejectedQueryResult).not.toHaveProperty('data')
 		})
 	})
+
+	it('manual fetch works correctly', () => {
+		expect(cacheStore).toBeDefined()
+		const { useQuery } = cacheStore.getState()
+
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+		const { data, loading, error, refetch } = useQuery(mockFn.success, [18], { autofetch: false })
+
+		expect(loading).toBeFalsy()
+		expect(data).toBeUndefined()
+		expect(error).toBeUndefined()
+		expect(refetch).toBeTypeOf('function')
+
+		const refetchResponse = refetch()
+		expect(refetchResponse.loading).toBeTruthy()
+		expect(refetchResponse.data).toBeUndefined()
+		expect(refetchResponse.error).toBeUndefined()
+		expect(refetchResponse.refetch).toBeTypeOf('function')
+
+		setTimeout(() => {
+			const successfulQueryResult = useQuery(mockFn.success, [18])
+			expect(successfulQueryResult).toBeTypeOf('object')
+			expect(successfulQueryResult).toHaveProperty('loading')
+			expect(successfulQueryResult.loading).toBeFalsy()
+
+			expect(successfulQueryResult).not.toHaveProperty('error')
+			expect(successfulQueryResult).toHaveProperty('data')
+			expect(successfulQueryResult.data).toEqual(36)
+		})
+	})
 })
