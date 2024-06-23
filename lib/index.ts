@@ -45,7 +45,7 @@ export const createClient =
 				(state) =>
 					(
 						/**
-						 * `setCache` called strongly after `getCache`:
+						 * `setCache` is called strongly after `getCache`:
 						 * `getCache` guarantees that cache for `queryFn` is created
 						 */
 						state.cache.get(queryFn)!.set(queryArgs, newState),
