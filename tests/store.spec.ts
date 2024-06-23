@@ -15,7 +15,8 @@ const mockFn = {
 		.fn()
 		.mockResolvedValueOnce('post title')
 		.mockRejectedValue('500 server error'),
-	successInvalidate: vi.fn().mockResolvedValueOnce(17).mockResolvedValue(27)
+	successInvalidate: vi.fn().mockResolvedValueOnce(17).mockResolvedValue(27),
+	waitForSuccess: vi.fn(() => new Promise((resolve) => setTimeout(() => resolve(12), 3000)))
 }
 
 let cacheStore: StoreApi<ZustandQueries>
@@ -126,6 +127,7 @@ describe('Zustand with Vanilla JS', () => {
 			setTimeout(() => {
 				const nextResult = useQuery(mockFn.successInvalidate)
 				expect(nextResult.data).equals(27)
+				invalidate(mockFn.successInvalidate, [15])
 			})
 		})
 	})
@@ -197,6 +199,28 @@ describe('Zustand with Vanilla JS', () => {
 				expect(error).not.toBeInstanceOf(Promise)
 				expect(error).toBeTypeOf('string')
 				expect(error).toEqual('something went wrong')
+			}
+		})
+	})
+
+	it('suspended mode works with long time resolving Promise', () => {
+		const { useSuspendedQuery } = cacheStore.getState()
+
+		try {
+			useSuspendedQuery(mockFn.waitForSuccess)
+		} catch (thrownObject) {
+			expect(thrownObject).toBeInstanceOf(Promise)
+		}
+
+		setTimeout(() => {
+			try {
+				useSuspendedQuery(mockFn.waitForSuccess)
+			} catch (thrownObject) {
+				expect(thrownObject).toBeInstanceOf(Promise)
+				setTimeout(() => {
+					const result = useSuspendedQuery(mockFn.waitForSuccess)
+					expect(result).toEqual(13)
+				}, 3500)
 			}
 		})
 	})
