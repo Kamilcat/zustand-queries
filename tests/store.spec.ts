@@ -14,7 +14,8 @@ const mockFn = {
 	successThenError: vi
 		.fn()
 		.mockResolvedValueOnce('post title')
-		.mockRejectedValue('500 server error')
+		.mockRejectedValue('500 server error'),
+	successInvalidate: vi.fn().mockResolvedValueOnce(17).mockResolvedValue(27)
 }
 
 let cacheStore: StoreApi<ZustandQueries>
@@ -111,6 +112,24 @@ describe('Zustand with Vanilla JS', () => {
 		})
 	})
 
+	it('invalidates cache', () => {
+		const { useQuery, invalidate } = cacheStore.getState()
+
+		const queryResult = useQuery(mockFn.successInvalidate)
+		expect(queryResult).not.toHaveProperty('data')
+
+		setTimeout(() => {
+			const resolvedQueryResult = useQuery(mockFn.successInvalidate)
+			expect(resolvedQueryResult.data).equals(17)
+			invalidate(mockFn.successInvalidate)
+
+			setTimeout(() => {
+				const nextResult = useQuery(mockFn.successInvalidate)
+				expect(nextResult.data).equals(27)
+			})
+		})
+	})
+
 	it('manual fetch works correctly', () => {
 		expect(cacheStore).toBeDefined()
 		const { useQuery } = cacheStore.getState()
@@ -156,7 +175,6 @@ describe('Zustand with Vanilla JS', () => {
 			})
 		}
 
-		// Re-call to check if result for argument 15 is cached
 		setTimeout(() => {
 			const resolvedQueryResult = useSuspendedQuery(mockFn.success, [15])
 			expect(resolvedQueryResult).equals(30)
@@ -172,7 +190,6 @@ describe('Zustand with Vanilla JS', () => {
 			expect(thrownObject).toBeInstanceOf(Promise)
 		}
 
-		// Re-call to check if result for argument 15 is cached
 		setTimeout(() => {
 			try {
 				useSuspendedQuery(mockFn.error)
