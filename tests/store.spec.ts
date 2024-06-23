@@ -140,4 +140,47 @@ describe('Zustand with Vanilla JS', () => {
 			expect(successfulQueryResult.data).toEqual(36)
 		})
 	})
+
+	it('suspended mode works with resolving Promise', () => {
+		const { useSuspendedQuery } = cacheStore.getState()
+
+		try {
+			useSuspendedQuery(mockFn.success, [15])
+		} catch (thrownObject) {
+			expect(thrownObject).toBeInstanceOf(Promise)
+			// @ts-expect-error
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+			thrownObject.then(() => {
+				const resolvedQueryResult = useSuspendedQuery(mockFn.success, [15])
+				expect(resolvedQueryResult).equals(30)
+			})
+		}
+
+		// Re-call to check if result for argument 15 is cached
+		setTimeout(() => {
+			const resolvedQueryResult = useSuspendedQuery(mockFn.success, [15])
+			expect(resolvedQueryResult).equals(30)
+		})
+	})
+
+	it('suspended mode works with rejecting Promise', () => {
+		const { useSuspendedQuery } = cacheStore.getState()
+
+		try {
+			useSuspendedQuery(mockFn.error)
+		} catch (thrownObject) {
+			expect(thrownObject).toBeInstanceOf(Promise)
+		}
+
+		// Re-call to check if result for argument 15 is cached
+		setTimeout(() => {
+			try {
+				useSuspendedQuery(mockFn.error)
+			} catch (error) {
+				expect(error).not.toBeInstanceOf(Promise)
+				expect(error).toBeTypeOf('string')
+				expect(error).toEqual('something went wrong')
+			}
+		})
+	})
 })
