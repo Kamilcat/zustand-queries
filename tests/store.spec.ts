@@ -144,7 +144,8 @@ describe('Zustand with Vanilla JS', () => {
 		expect(error).toBeUndefined()
 		expect(refetch).toBeTypeOf('function')
 
-		const refetchResponse = refetch()
+		void refetch()
+		const refetchResponse = useQuery(mockFn.success, [18])
 		expect(refetchResponse.loading).toBeTruthy()
 		expect(refetchResponse.data).toBeUndefined()
 		expect(refetchResponse.error).toBeUndefined()
@@ -173,13 +174,13 @@ describe('Zustand with Vanilla JS', () => {
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 			thrownObject.then(() => {
 				const resolvedQueryResult = useSuspendedQuery(mockFn.success, [15])
-				expect(resolvedQueryResult).equals(30)
+				expect(resolvedQueryResult.data).equals(30)
 			})
 		}
 
 		setTimeout(() => {
 			const resolvedQueryResult = useSuspendedQuery(mockFn.success, [15])
-			expect(resolvedQueryResult).equals(30)
+			expect(resolvedQueryResult.data).equals(30)
 		})
 	})
 

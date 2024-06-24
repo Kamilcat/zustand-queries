@@ -1,7 +1,8 @@
 import type { StateCreator } from 'zustand'
 import type { CacheMap, CacheRecord } from './types/cache'
 import type { QueryInit, QueryStore } from './types/query-config'
-import type { QueryResponse } from './types/query-response'
+// import type { QueryResponse } from './types/query-response'
+import { QueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
@@ -16,7 +17,6 @@ const defaultConfig: QueryStore = {
 
 export const createClient =
 	<T extends QueryStore>(queryStoreProto: T = defaultConfig as T): StateCreator<ZustandQueries> =>
-	// @ts-expect-error
 	(set, get) => {
 		function getCache<A extends AsyncFunction>(
 			queryFn: A,
@@ -38,103 +38,88 @@ export const createClient =
 
 		function setCache<A extends AsyncFunction>(
 			queryFn: A,
-			queryArgs: Stringified<Parameters<A>>,
-			newState: QueryResponse<A>
+			args: Parameters<A>,
+			newState?: Partial<QueryResponse<A>>
 		) {
-			set(
-				(state) =>
-					(
-						/**
-						 * `setCache` is called strongly after `getCache`:
-						 * `getCache` guarantees that cache for `queryFn` is created
-						 */
-						state.cache.get(queryFn)!.set(queryArgs, newState),
-						{ cache: new Map(state.cache) as CacheMap }
-					)
-			)
+			const queryArgs = JSON.stringify(args) as unknown as Stringified<Parameters<A>>
+			set((state) => {
+				/**
+				 * `setCache` is called strongly after `getCache`:
+				 * `getCache` guarantees that cache for `queryFn` is created
+				 */
+				const cache = state.cache.get(queryFn)!
+				const newData = { ...cache.get(queryArgs)!, ...newState }
+				cache.set(queryArgs, newData)
+				return { cache: new Map(state.cache) as CacheMap }
+			})
 		}
 
-		function fetchPromise<A extends AsyncFunction>(
+		function executeQuery<A extends AsyncFunction>(
+			suspense: boolean,
 			queryFn: A,
-			args: Parameters<A>,
-			queryCache: CacheRecord<A>,
-			queryArgs: Stringified<Parameters<A>>,
+			args = [] as unknown as Parameters<A>,
 			queryInit?: QueryInit
-		): QueryResponse<A> {
+		) {
 			const queryConfig = queryInit
 				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
 				: (queryStoreProto as QueryInit)
-
-			const refetch = () =>
-				fetchPromise(
-					queryFn,
-					args,
-					queryCache,
-					queryArgs,
-					Object.setPrototypeOf(autoFetch, queryConfig) as QueryInit
-				)
-
-			const promise: Promise<void> = queryConfig.autofetch
-				? // eslint-disable-next-line prefer-spread
-					queryFn
-						.apply(null, args)
-						.then(
-							(data: Awaited<ReturnType<typeof queryFn>>) =>
-								setCache(queryFn, queryArgs, {
-									data,
-									promise,
-									loading: false,
-									refetch
-								}),
-							(error: unknown) =>
-								setCache(queryFn, queryArgs, {
-									error,
-									promise,
-									loading: false,
-									refetch
-								})
-						)
+			const [queryCache, queryArgs] = getCache(queryFn, args)
+			let queryResult = queryCache.get(queryArgs)
+			if (!queryResult) {
+				const refetch = () =>
+					get()
+						.refetch(queryFn, args)
 						.finally(() => setTimeout(() => deleteCache(queryFn, args), queryConfig.lifetime))
-				: Promise.resolve()
-			const queryResult: QueryResponse<A> = {
-				refetch,
-				promise,
-				loading: queryConfig.autofetch
+				queryResult = {
+					refetch,
+					promise: queryConfig.autofetch ? refetch() : Promise.resolve(),
+					loading: queryConfig.autofetch
+				}
+				queryCache.set(queryArgs, queryResult)
 			}
-			queryCache.set(queryArgs, queryResult)
+			if (suspense) {
+				if ('error' in queryResult) throw queryResult.error
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+				if (!('data' in queryResult)) throw queryResult.promise
+			}
 			return queryResult
 		}
 
 		return {
 			cache: new Map() as CacheMap,
-			invalidate<A extends AsyncFunction>(queryFn: A, args = [] as unknown as Parameters<A>) {
-				deleteCache(queryFn, args)
-				get().useQuery(queryFn, args)
+			refetch<A extends AsyncFunction>(
+				queryFn: A,
+				args = [] as unknown as Parameters<A>
+			): Promise<void> {
+				// eslint-disable-next-line prefer-spread
+				const promise = queryFn.apply(null, args).then(
+					(data: Awaited<ReturnType<typeof queryFn>>) =>
+						setCache(queryFn, args, { data, loading: false }),
+					(error: unknown) => setCache(queryFn, args, { error, loading: false })
+				)
+				setCache(queryFn, args, { promise, loading: true })
+				return promise
 			},
-			useSuspendedQuery<A extends AsyncFunction>(
+			invalidate<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
-				queryInit?: QueryInit
+				data?: Awaited<ReturnType<A>>
 			) {
-				const [queryCache, queryArgs] = getCache(queryFn, args)
-				const queryResult = queryCache.get(queryArgs)
-				if (queryResult) {
-					if ('error' in queryResult) throw queryResult.error
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-					if ('data' in queryResult) return queryResult.data
-					throw queryResult.promise
+				if (data) setCache(queryFn, args, { data, loading: false })
+				else {
+					deleteCache(queryFn, args)
+					void get().refetch(queryFn, args)
 				}
-				throw fetchPromise(queryFn, args, queryCache, queryArgs, queryInit).promise
 			},
-			useQuery<A extends AsyncFunction>(
+			useSuspendedQuery: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				queryInit?: QueryInit
-			) {
-				const [queryCache, queryArgs] = getCache(queryFn, args)
-				return queryCache.has(queryArgs)
-					? queryCache.get(queryArgs)!
-					: fetchPromise(queryFn, args, queryCache, queryArgs, queryInit)
-			}
+			) => executeQuery(true, queryFn, args, queryInit),
+			useQuery: <A extends AsyncFunction>(
+				queryFn: A,
+				args = [] as unknown as Parameters<A>,
+				queryInit?: QueryInit
+			) => executeQuery(false, queryFn, args, queryInit)
 		}
 	}

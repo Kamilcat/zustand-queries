@@ -7,12 +7,18 @@ export interface QueryCache {
 	/** Query cache, contained in Map object */
 	cache: CacheMap
 
+	refetch: <A extends AsyncFunction>(queryFn: A, args?: Parameters<A>) => Promise<void>
+
 	/**
 	 * Invalidate query result for provided arguments:
 	 * previous result will be deleted and replaced
 	 * with a new one
 	 */
-	invalidate: <A extends AsyncFunction>(queryFn: A, args?: Parameters<A>) => void
+	invalidate: <A extends AsyncFunction>(
+		queryFn: A,
+		args?: Parameters<A>,
+		newData?: Awaited<ReturnType<A>>
+	) => void
 
 	/**
 	 * Get cached query result for provided arguments, if found.
@@ -26,8 +32,7 @@ export interface QueryCache {
 		queryFn: A,
 		args?: Parameters<A>,
 		queryInit?: QueryInit
-	) => Awaited<ReturnType<A>>
-
+	) => QueryResponse<A>
 	/**
 	 * Get cached query result for provided arguments, if found.
 	 * Otherwise runs Promise and caches it result
