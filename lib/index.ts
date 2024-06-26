@@ -35,10 +35,7 @@ export const createClient =
 			queryArgs: Stringified<Parameters<A>>,
 			newState?: Partial<QueryResponse<A>>
 		) {
-			/**
-			 * `setCache` is called strongly after `executeQuery`:
-			 * `executeQuery` guarantees that cache for `queryFn` is created
-			 */
+			// executeQuery() guarantees that cache for `queryFn` exists
 			const queryCache = getCache(queryFn)!
 			queryCache.set(queryArgs, { ...queryCache.get(queryArgs)!, ...newState })
 			updateState()
