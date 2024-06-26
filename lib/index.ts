@@ -6,12 +6,8 @@ import { QueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
-const autoFetch: QueryStore = {
-	autofetch: true
-}
-
 const defaultConfig: QueryStore = {
-	...autoFetch,
+	autofetch: true,
 	lifetime: 300000
 }
 
@@ -36,7 +32,7 @@ export const createClient =
 
 		function setCache<A extends AsyncFunction>(
 			queryFn: A,
-			args: Parameters<A>,
+			queryArgs: Stringified<Parameters<A>>,
 			newState?: Partial<QueryResponse<A>>
 		) {
 			/**
@@ -44,9 +40,25 @@ export const createClient =
 			 * `executeQuery` guarantees that cache for `queryFn` is created
 			 */
 			const queryCache = getCache(queryFn)!
-			const queryArgs = serialaze(args)
 			queryCache.set(queryArgs, { ...queryCache.get(queryArgs)!, ...newState })
 			updateState()
+		}
+
+		function refetchQuery<A extends AsyncFunction>(
+			queryFn: A,
+			args = [] as unknown as Parameters<A>,
+			queryArgs: Stringified<Parameters<A>>
+		): Promise<Awaited<ReturnType<A>>> {
+			// TODO: не оптимально, что promise и loading перезаписываются в executeQuery, если autofetch = true
+			// eslint-disable-next-line prefer-spread
+			const promise = queryFn.apply(null, args).then(
+				(data: Awaited<ReturnType<typeof queryFn>>) => (
+					setCache(queryFn, queryArgs, { data, loading: false }), data
+				),
+				(error: unknown) => setCache(queryFn, queryArgs, { error, loading: false })
+			)
+			setCache(queryFn, queryArgs, { promise, loading: true })
+			return promise as Promise<Awaited<ReturnType<A>>>
 		}
 
 		function executeQuery<A extends AsyncFunction>(
@@ -62,7 +74,7 @@ export const createClient =
 			const queryCache = getCache(queryFn) ?? get().cache.set(queryFn, new Map()).get(queryFn)!
 			const queryArgs = serialaze(args)
 			if (!queryCache.has(queryArgs)) {
-				const refetch = () => get().refetch(queryFn, args)
+				const refetch = () => refetchQuery(queryFn, args, queryArgs)
 				queryCache.set(queryArgs, { promise: Promise.resolve(), refetch })
 				if (queryConfig.autofetch)
 					refetch().finally(() =>
@@ -80,29 +92,19 @@ export const createClient =
 
 		return {
 			cache: new Map() as CacheMap,
-			refetch<A extends AsyncFunction>(
+			refetch: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>
-			): Promise<Awaited<ReturnType<A>>> {
-				// TODO: не оптимально, что promise и loading перезаписываются в executeQuery, если autofetch = true
-				// eslint-disable-next-line prefer-spread
-				const promise = queryFn.apply(null, args).then(
-					(data: Awaited<ReturnType<typeof queryFn>>) => (
-						setCache(queryFn, args, { data, loading: false }), data
-					),
-					(error: unknown) => setCache(queryFn, args, { error, loading: false })
-				)
-				setCache(queryFn, args, { promise, loading: true })
-				return promise as Promise<Awaited<ReturnType<A>>>
-			},
+			): Promise<Awaited<ReturnType<A>>> => refetchQuery(queryFn, args, serialaze(args)),
 			invalidate<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				data?: Awaited<ReturnType<A>>
 			) {
-				if (data) setCache(queryFn, args, { data, loading: false })
+				const queryArgs = serialaze(args)
+				if (data) setCache(queryFn, queryArgs, { data, loading: false })
 				else {
-					deleteCache(queryFn, serialaze(args))
+					deleteCache(queryFn, queryArgs)
 					void get().refetch(queryFn, args)
 				}
 			},
