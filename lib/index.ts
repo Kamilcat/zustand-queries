@@ -18,22 +18,19 @@ const defaultConfig: QueryStore = {
 export const createClient =
 	<T extends QueryStore>(queryStoreProto: T = defaultConfig as T): StateCreator<ZustandQueries> =>
 	(set, get) => {
+		// @ts-expect-error
+		const serialaze: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
+
 		const updateState = () => set((state) => ({ cache: new Map(state.cache) as CacheMap }))
 
-		function getCache<A extends AsyncFunction>(
-			queryFn: A,
-			args: Parameters<A>
-		): [CacheRecord<A>, Stringified<Parameters<A>>] {
-			const cache = get().cache
-			return [
-				cache.get(queryFn) ?? cache.set(queryFn, new Map()).get(queryFn)!,
-				JSON.stringify(args) as unknown as Stringified<Parameters<A>>
-			]
-		}
+		const getCache = <A extends AsyncFunction>(queryFn: A): CacheRecord<A> | undefined =>
+			get().cache.get(queryFn)
 
-		function deleteCache<A extends AsyncFunction>(queryFn: A, args: Parameters<A>) {
-			const [queryCache, queryArgs] = getCache(queryFn, args)
-			queryCache.delete(queryArgs)
+		function deleteCache<A extends AsyncFunction>(
+			queryFn: A,
+			queryArgs: Stringified<Parameters<A>>
+		) {
+			getCache(queryFn)!.delete(queryArgs)
 			updateState()
 		}
 
@@ -43,10 +40,11 @@ export const createClient =
 			newState?: Partial<QueryResponse<A>>
 		) {
 			/**
-			 * `setCache` is called strongly after `getCache`:
-			 * `getCache` guarantees that cache for `queryFn` is created
+			 * `setCache` is called strongly after `executeQuery`:
+			 * `executeQuery` guarantees that cache for `queryFn` is created
 			 */
-			const [queryCache, queryArgs] = getCache(queryFn, args)
+			const queryCache = getCache(queryFn)!
+			const queryArgs = serialaze(args)
 			queryCache.set(queryArgs, { ...queryCache.get(queryArgs)!, ...newState })
 			updateState()
 		}
@@ -61,20 +59,17 @@ export const createClient =
 				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
 				: (queryStoreProto as QueryInit)
 
-			const [queryCache, queryArgs] = getCache(queryFn, args)
+			const queryCache = getCache(queryFn) ?? get().cache.set(queryFn, new Map()).get(queryFn)!
+			const queryArgs = serialaze(args)
 			if (!queryCache.has(queryArgs)) {
-				queryResult = {
-					refetch: () => get().refetch(queryFn, args),
-					promise: Promise.resolve()
-				}
-				queryCache.set(queryArgs, queryResult)
+				const refetch = () => get().refetch(queryFn, args)
+				queryCache.set(queryArgs, { promise: Promise.resolve(), refetch })
 				if (queryConfig.autofetch)
-					queryResult
-						.refetch()
-						.finally(() => setTimeout(() => deleteCache(queryFn, args), queryConfig.lifetime))
+					refetch().finally(() =>
+						setTimeout(() => deleteCache(queryFn, queryArgs), queryConfig.lifetime)
+					)
 			}
-			// eslint-disable-next-line no-var
-			var queryResult = queryCache.get(queryArgs)!
+			const queryResult = queryCache.get(queryArgs)!
 			if (suspense) {
 				if ('error' in queryResult) throw queryResult.error
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -107,7 +102,7 @@ export const createClient =
 			) {
 				if (data) setCache(queryFn, args, { data, loading: false })
 				else {
-					deleteCache(queryFn, args)
+					deleteCache(queryFn, serialaze(args))
 					void get().refetch(queryFn, args)
 				}
 			},
