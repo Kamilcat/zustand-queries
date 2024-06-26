@@ -18,6 +18,8 @@ const defaultConfig: QueryStore = {
 export const createClient =
 	<T extends QueryStore>(queryStoreProto: T = defaultConfig as T): StateCreator<ZustandQueries> =>
 	(set, get) => {
+		const updateState = () => set((state) => ({ cache: new Map(state.cache) as CacheMap }))
+
 		function getCache<A extends AsyncFunction>(
 			queryFn: A,
 			args: Parameters<A>
@@ -31,10 +33,8 @@ export const createClient =
 
 		function deleteCache<A extends AsyncFunction>(queryFn: A, args: Parameters<A>) {
 			const [queryCache, queryArgs] = getCache(queryFn, args)
-			if (queryCache.has(queryArgs)) {
-				queryCache.delete(queryArgs)
-				set({ cache: new Map(get().cache) as CacheMap })
-			}
+			queryCache.delete(queryArgs)
+			updateState()
 		}
 
 		function setCache<A extends AsyncFunction>(
@@ -42,15 +42,13 @@ export const createClient =
 			args: Parameters<A>,
 			newState?: Partial<QueryResponse<A>>
 		) {
-			set((state) => {
-				/**
-				 * `setCache` is called strongly after `getCache`:
-				 * `getCache` guarantees that cache for `queryFn` is created
-				 */
-				const [queryCache, queryArgs] = getCache(queryFn, args)
-				queryCache.set(queryArgs, { ...queryCache.get(queryArgs)!, ...newState })
-				return { cache: new Map(state.cache) as CacheMap }
-			})
+			/**
+			 * `setCache` is called strongly after `getCache`:
+			 * `getCache` guarantees that cache for `queryFn` is created
+			 */
+			const [queryCache, queryArgs] = getCache(queryFn, args)
+			queryCache.set(queryArgs, { ...queryCache.get(queryArgs)!, ...newState })
+			updateState()
 		}
 
 		function executeQuery<A extends AsyncFunction>(
