@@ -63,20 +63,21 @@ export const createClient =
 			const queryConfig = queryInit
 				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
 				: (queryStoreProto as QueryInit)
+
 			const [queryCache, queryArgs] = getCache(queryFn, args)
-			let queryResult = queryCache.get(queryArgs)
-			if (!queryResult) {
-				const refetch = () =>
-					get()
-						.refetch(queryFn, args)
-						.finally(() => setTimeout(() => deleteCache(queryFn, args), queryConfig.lifetime))
+			if (!queryCache.has(queryArgs)) {
 				queryResult = {
-					refetch,
-					promise: queryConfig.autofetch ? refetch() : Promise.resolve(),
-					loading: queryConfig.autofetch
+					refetch: () => get().refetch(queryFn, args),
+					promise: Promise.resolve()
 				}
 				queryCache.set(queryArgs, queryResult)
+				if (queryConfig.autofetch)
+					queryResult
+						.refetch()
+						.finally(() => setTimeout(() => deleteCache(queryFn, args), queryConfig.lifetime))
 			}
+			// eslint-disable-next-line no-var
+			var queryResult = queryCache.get(queryArgs)!
 			if (suspense) {
 				if ('error' in queryResult) throw queryResult.error
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -91,10 +92,12 @@ export const createClient =
 				queryFn: A,
 				args = [] as unknown as Parameters<A>
 			): Promise<void> {
+				// TODO: не оптимально, что promise и loading перезаписываются в executeQuery, если autofetch = true
 				// eslint-disable-next-line prefer-spread
 				const promise = queryFn.apply(null, args).then(
-					(data: Awaited<ReturnType<typeof queryFn>>) =>
-						setCache(queryFn, args, { data, loading: false }),
+					(data: Awaited<ReturnType<typeof queryFn>>) => (
+						setCache(queryFn, args, { data, loading: false }), data
+					),
 					(error: unknown) => setCache(queryFn, args, { error, loading: false })
 				)
 				setCache(queryFn, args, { promise, loading: true })
