@@ -23,9 +23,10 @@ export const createClient =
 			args: Parameters<A>
 		): [CacheRecord<A>, Stringified<Parameters<A>>] {
 			const cache = get().cache
-			const queryCache = cache.get(queryFn) ?? cache.set(queryFn, new Map()).get(queryFn)!
-			const queryArgs = JSON.stringify(args) as unknown as Stringified<Parameters<A>>
-			return [queryCache, queryArgs]
+			return [
+				cache.get(queryFn) ?? cache.set(queryFn, new Map()).get(queryFn)!,
+				JSON.stringify(args) as unknown as Stringified<Parameters<A>>
+			]
 		}
 
 		function deleteCache<A extends AsyncFunction>(queryFn: A, args: Parameters<A>) {
