@@ -41,15 +41,13 @@ export const createClient =
 			args: Parameters<A>,
 			newState?: Partial<QueryResponse<A>>
 		) {
-			const queryArgs = JSON.stringify(args) as unknown as Stringified<Parameters<A>>
 			set((state) => {
 				/**
 				 * `setCache` is called strongly after `getCache`:
 				 * `getCache` guarantees that cache for `queryFn` is created
 				 */
-				const cache = state.cache.get(queryFn)!
-				const newData = { ...cache.get(queryArgs)!, ...newState }
-				cache.set(queryArgs, newData)
+				const [queryCache, queryArgs] = getCache(queryFn, args)
+				queryCache.set(queryArgs, { ...queryCache.get(queryArgs)!, ...newState })
 				return { cache: new Map(state.cache) as CacheMap }
 			})
 		}
@@ -91,7 +89,7 @@ export const createClient =
 			refetch<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>
-			): Promise<void> {
+			): Promise<Awaited<ReturnType<A>>> {
 				// TODO: не оптимально, что promise и loading перезаписываются в executeQuery, если autofetch = true
 				// eslint-disable-next-line prefer-spread
 				const promise = queryFn.apply(null, args).then(
@@ -101,7 +99,7 @@ export const createClient =
 					(error: unknown) => setCache(queryFn, args, { error, loading: false })
 				)
 				setCache(queryFn, args, { promise, loading: true })
-				return promise
+				return promise as Promise<Awaited<ReturnType<A>>>
 			},
 			invalidate<A extends AsyncFunction>(
 				queryFn: A,

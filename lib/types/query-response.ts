@@ -5,5 +5,5 @@ export type QueryResponse<A extends AsyncFunction> = {
 	promise: Promise<void>
 	data?: Awaited<ReturnType<A>>
 	error?: any
-	refetch: () => Promise<void>
+	refetch: () => Promise<Awaited<ReturnType<A>>>
 }

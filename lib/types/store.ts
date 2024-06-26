@@ -7,7 +7,10 @@ export interface QueryCache {
 	/** Query cache, contained in Map object */
 	cache: CacheMap
 
-	refetch: <A extends AsyncFunction>(queryFn: A, args?: Parameters<A>) => Promise<void>
+	refetch: <A extends AsyncFunction>(
+		queryFn: A,
+		args?: Parameters<A>
+	) => Promise<Awaited<ReturnType<A>>>
 
 	/**
 	 * Invalidate query result for provided arguments:
