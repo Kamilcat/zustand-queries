@@ -1,12 +1,12 @@
 import type { StateCreator } from 'zustand'
 import type { CacheMap, CacheRecord } from './types/cache'
-import type { QueryInit, QueryStore } from './types/query-config'
+import type { QueryInit } from './types/query-config'
 import type { QueryResponse, SuspenseQueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
 export const createClient =
-	<T extends QueryStore>(
+	<T extends QueryInit>(
 		queryStoreProto: T = {
 			autofetch: true,
 			lifetime: 300000

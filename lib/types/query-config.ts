@@ -1,7 +1,7 @@
-import type { AsyncFunction } from './utils'
-
 export interface QueryInit {
-	/** Query cache lifetime */
+	/** Query cache lifetime
+	 * @default 300000
+	 */
 	lifetime?: number
 
 	/** Automatically re-fetch query, when it's cache lifetime expired
@@ -21,22 +21,4 @@ export interface QueryInit {
 	 * @default true
 	 */
 	autofetch?: boolean
-}
-
-export interface QueryConfig extends QueryInit {
-	query: AsyncFunction
-}
-
-export type ExtractQuery<Q extends QueryConfig | AsyncFunction> = Q extends AsyncFunction
-	? Q
-	: Q extends QueryConfig
-		? Q['query']
-		: never
-
-export type Queries = Record<string, AsyncFunction | QueryConfig>
-export type Mutations = Record<string, AsyncFunction>
-
-export interface QueryStore extends QueryInit {
-	queries?: Queries
-	mutations?: Mutations
 }
