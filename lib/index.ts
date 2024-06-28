@@ -1,8 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { CacheMap, CacheRecord } from './types/cache'
 import type { QueryInit, QueryStore } from './types/query-config'
-// import type { QueryResponse } from './types/query-response'
-import { QueryResponse, SuspenseQueryResponse } from './types/query-response'
+import type { QueryResponse, SuspenseQueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
@@ -46,7 +45,6 @@ export const createClient =
 			args = [] as unknown as Parameters<A>,
 			queryArgs: Stringified<Parameters<A>>
 		): Promise<Awaited<ReturnType<A>>> {
-			// eslint-disable-next-line prefer-spread
 			const promise = queryFn.apply(null, args).then(
 				(data: Awaited<ReturnType<typeof queryFn>>) => (
 					setCache(queryFn, queryArgs, { data, loading: false }), data
