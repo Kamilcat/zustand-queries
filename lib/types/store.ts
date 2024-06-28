@@ -5,9 +5,9 @@ import type { AsyncFunction } from './utils'
 
 export interface QueryCache {
 	/** Query cache, contained in Map object */
-	cache: CacheMap
+	$cache: CacheMap
 
-	refetch: <A extends AsyncFunction>(
+	$refetch: <A extends AsyncFunction>(
 		queryFn: A,
 		args?: Parameters<A>
 	) => Promise<Awaited<ReturnType<A>>>
@@ -17,7 +17,7 @@ export interface QueryCache {
 	 * previous result will be deleted and replaced
 	 * with a new one
 	 */
-	invalidate: <A extends AsyncFunction>(
+	$invalidate: <A extends AsyncFunction>(
 		queryFn: A,
 		args?: Parameters<A>,
 		newData?: Awaited<ReturnType<A>>
@@ -31,7 +31,7 @@ export interface QueryCache {
 	 * @param queryInit custom query configuration
 	 * @returns cached query result or throws suspense to parent component
 	 */
-	useSuspendedQuery: <A extends AsyncFunction>(
+	$suspenseQuery: <A extends AsyncFunction>(
 		queryFn: A,
 		args?: Parameters<A>,
 		queryInit?: QueryInit
@@ -44,7 +44,7 @@ export interface QueryCache {
 	 * @param queryInit custom query configuration
 	 * @returns cached query result
 	 */
-	useQuery: <A extends AsyncFunction>(
+	$query: <A extends AsyncFunction>(
 		queryFn: A,
 		args?: Parameters<A>,
 		queryInit?: QueryInit

@@ -18,10 +18,10 @@ export const createClient =
 		// @ts-expect-error
 		const serialaze: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
 
-		const updateState = () => set((state) => ({ cache: new Map(state.cache) as CacheMap }))
+		const updateState = () => set((state) => ({ $cache: new Map(state.$cache) as CacheMap }))
 
 		const getCache = <A extends AsyncFunction>(queryFn: A): CacheRecord<A> =>
-			get().cache.get(queryFn) ?? get().cache.set(queryFn, new Map()).get(queryFn)!
+			get().$cache.get(queryFn) ?? get().$cache.set(queryFn, new Map()).get(queryFn)!
 
 		function setCache<A extends AsyncFunction>(
 			queryFn: A,
@@ -82,12 +82,12 @@ export const createClient =
 		}
 
 		return {
-			cache: new Map() as CacheMap,
-			refetch: <A extends AsyncFunction>(
+			$cache: new Map() as CacheMap,
+			$refetch: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>
 			): Promise<Awaited<ReturnType<A>>> => refetchQuery(queryFn, args, serialaze(args)),
-			invalidate<A extends AsyncFunction>(
+			$invalidate<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				data?: Awaited<ReturnType<A>>
@@ -95,12 +95,12 @@ export const createClient =
 				if (data) setCache(queryFn, serialaze(args), { data, loading: false })
 				else void refetchQuery(queryFn, args, serialaze(args))
 			},
-			useSuspendedQuery: <A extends AsyncFunction>(
+			$suspenseQuery: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				queryInit?: QueryInit
 			) => executeQuery(true, queryFn, args, queryInit),
-			useQuery: <A extends AsyncFunction>(
+			$query: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				queryInit?: QueryInit
