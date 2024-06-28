@@ -21,11 +21,11 @@ const mockFn = {
 
 let cacheStore: StoreApi<ZustandQueries>
 
-beforeEach(() => {
-	cacheStore = createStore(createClient())
-})
-
 describe('Zustand with Vanilla JS', () => {
+	beforeEach(() => {
+		cacheStore = createStore(createClient())
+	})
+
 	it('creates cache store properly', () => {
 		expect(cacheStore).toBeDefined()
 
@@ -120,15 +120,18 @@ describe('Zustand with Vanilla JS', () => {
 		expect(queryResult).not.toHaveProperty('data')
 
 		setTimeout(() => {
-			const resolvedQueryResult = useQuery(mockFn.successInvalidate)
-			expect(resolvedQueryResult.data).equals(17)
+			let resolvedQueryResult = useQuery(mockFn.successInvalidate)
+			expect(resolvedQueryResult.data).equals(18)
 			invalidate(mockFn.successInvalidate)
+			resolvedQueryResult = useQuery(mockFn.successInvalidate)
+			expect(resolvedQueryResult.data).equals(18)
+		})
 
-			setTimeout(() => {
-				const nextResult = useQuery(mockFn.successInvalidate)
-				expect(nextResult.data).equals(27)
-				invalidate(mockFn.successInvalidate, [15])
-			})
+		setTimeout(() => {
+			expect(mockFn.successInvalidate).toBeTypeOf('function')
+			const nextResult = useQuery(mockFn.successInvalidate)
+			expect(nextResult.data).equals(26)
+			invalidate(mockFn.successInvalidate, [15])
 		})
 	})
 
