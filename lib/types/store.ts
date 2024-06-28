@@ -1,6 +1,6 @@
 import type { CacheMap } from './cache'
 import { QueryInit } from './query-config'
-import type { QueryResponse } from './query-response'
+import type { QueryResponse, SuspenseQueryResponse } from './query-response'
 import type { AsyncFunction } from './utils'
 
 export interface QueryCache {
@@ -35,7 +35,7 @@ export interface QueryCache {
 		queryFn: A,
 		args?: Parameters<A>,
 		queryInit?: QueryInit
-	) => QueryResponse<A>
+	) => SuspenseQueryResponse<A>
 	/**
 	 * Get cached query result for provided arguments, if found.
 	 * Otherwise runs Promise and caches it result

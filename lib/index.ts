@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { CacheMap, CacheRecord } from './types/cache'
 import type { QueryInit, QueryStore } from './types/query-config'
 // import type { QueryResponse } from './types/query-response'
-import { QueryResponse } from './types/query-response'
+import { QueryResponse, SuspenseQueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
@@ -57,8 +57,8 @@ export const createClient =
 			return promise as Promise<Awaited<ReturnType<A>>>
 		}
 
-		function executeQuery<A extends AsyncFunction>(
-			suspense: boolean,
+		function executeQuery<A extends AsyncFunction, S extends boolean>(
+			suspense: S,
 			queryFn: A,
 			args = [] as unknown as Parameters<A>,
 			queryInit?: QueryInit
@@ -80,7 +80,7 @@ export const createClient =
 				if ('error' in queryResult) throw queryResult.error
 				if (!('data' in queryResult)) throw queryResult.promise
 			}
-			return queryResult
+			return queryResult as S extends true ? SuspenseQueryResponse<A> : QueryResponse<A>
 		}
 
 		return {
