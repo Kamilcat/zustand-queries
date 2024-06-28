@@ -6,38 +6,39 @@ import { QueryResponse } from './types/query-response'
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
-const defaultConfig: QueryStore = {
-	autofetch: true,
-	lifetime: 300000
-}
-
 export const createClient =
-	<T extends QueryStore>(queryStoreProto: T = defaultConfig as T): StateCreator<ZustandQueries> =>
+	<T extends QueryStore>(
+		queryStoreProto: T = {
+			autofetch: true,
+			lifetime: 300000
+		} as T
+	): StateCreator<ZustandQueries> =>
 	(set, get) => {
+		const timers = new WeakMap<() => Promise<any>, [timerID: number, delay: number]>()
+
 		// @ts-expect-error
 		const serialaze: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
 
 		const updateState = () => set((state) => ({ cache: new Map(state.cache) as CacheMap }))
 
-		const getCache = <A extends AsyncFunction>(queryFn: A): CacheRecord<A> | undefined =>
-			get().cache.get(queryFn)
-
-		function deleteCache<A extends AsyncFunction>(
-			queryFn: A,
-			queryArgs: Stringified<Parameters<A>>
-		) {
-			getCache(queryFn)!.delete(queryArgs)
-			updateState()
-		}
+		const getCache = <A extends AsyncFunction>(queryFn: A): CacheRecord<A> =>
+			get().cache.get(queryFn) ?? get().cache.set(queryFn, new Map()).get(queryFn)!
 
 		function setCache<A extends AsyncFunction>(
 			queryFn: A,
 			queryArgs: Stringified<Parameters<A>>,
-			newState?: Partial<QueryResponse<A>>
+			newState: Partial<QueryResponse<A>>
 		) {
 			// executeQuery() guarantees that cache for `queryFn` exists
 			const queryCache = getCache(queryFn)!
-			queryCache.set(queryArgs, { ...queryCache.get(queryArgs)!, ...newState })
+			const queryResult = queryCache.get(queryArgs)!
+			const oldTimer = timers.get(queryResult.refetch)!
+			if (oldTimer[0]) clearTimeout(oldTimer[0])
+			queryCache.set(queryArgs, { ...queryResult, ...newState })
+			oldTimer[0] = setTimeout(() => {
+				queryCache.delete(queryArgs)
+				updateState()
+			}, oldTimer[1]) as unknown as number
 			updateState()
 		}
 
@@ -46,7 +47,6 @@ export const createClient =
 			args = [] as unknown as Parameters<A>,
 			queryArgs: Stringified<Parameters<A>>
 		): Promise<Awaited<ReturnType<A>>> {
-			// TODO: не оптимально, что promise и loading перезаписываются в executeQuery, если autofetch = true
 			// eslint-disable-next-line prefer-spread
 			const promise = queryFn.apply(null, args).then(
 				(data: Awaited<ReturnType<typeof queryFn>>) => (
@@ -68,20 +68,17 @@ export const createClient =
 				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
 				: (queryStoreProto as QueryInit)
 
-			const queryCache = getCache(queryFn) ?? get().cache.set(queryFn, new Map()).get(queryFn)!
+			const queryCache = getCache(queryFn)
 			const queryArgs = serialaze(args)
 			if (!queryCache.has(queryArgs)) {
 				const refetch = () => refetchQuery(queryFn, args, queryArgs)
 				queryCache.set(queryArgs, { promise: Promise.resolve(), refetch })
-				if (queryConfig.autofetch)
-					refetch().finally(() =>
-						setTimeout(() => deleteCache(queryFn, queryArgs), queryConfig.lifetime)
-					)
+				timers.set(refetch, [0, queryConfig.lifetime!])
+				if (queryConfig.autofetch) void refetch()
 			}
 			const queryResult = queryCache.get(queryArgs)!
 			if (suspense) {
 				if ('error' in queryResult) throw queryResult.error
-				// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 				if (!('data' in queryResult)) throw queryResult.promise
 			}
 			return queryResult
@@ -98,12 +95,8 @@ export const createClient =
 				args = [] as unknown as Parameters<A>,
 				data?: Awaited<ReturnType<A>>
 			) {
-				const queryArgs = serialaze(args)
-				if (data) setCache(queryFn, queryArgs, { data, loading: false })
-				else {
-					deleteCache(queryFn, queryArgs)
-					void get().refetch(queryFn, args)
-				}
+				if (data) setCache(queryFn, serialaze(args), { data, loading: false })
+				else void refetchQuery(queryFn, args, serialaze(args))
 			},
 			useSuspendedQuery: <A extends AsyncFunction>(
 				queryFn: A,
