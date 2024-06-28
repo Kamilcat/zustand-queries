@@ -30,17 +30,17 @@ describe('Zustand with Vanilla JS', () => {
 		expect(cacheStore).toBeDefined()
 
 		const state = cacheStore.getState()
-		expect(state).toHaveProperty('cache')
-		expect(state).toHaveProperty('invalidate')
-		expect(state).toHaveProperty('useQuery')
-		expect(state).toHaveProperty('useSuspendedQuery')
+		expect(state).toHaveProperty('$cache')
+		expect(state).toHaveProperty('$invalidate')
+		expect(state).toHaveProperty('$query')
+		expect(state).toHaveProperty('$suspenseQuery')
 	})
 
 	it('executes query and caches result for given arguments', () => {
-		const { useQuery } = cacheStore.getState()
+		const { $query } = cacheStore.getState()
 
 		// Call query mockFn.success with argument 15
-		const queryResult = useQuery(mockFn.success, [15])
+		const queryResult = $query(mockFn.success, [15])
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -55,7 +55,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Re-call to check if result for argument 15 is cached
 		setTimeout(() => {
-			const resolvedQueryResult = useQuery(mockFn.success, [15])
+			const resolvedQueryResult = $query(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('data')
 			expect(resolvedQueryResult.data).toBeTypeOf('number')
@@ -64,7 +64,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Call again to check if cached result didn't change
 		setTimeout(() => {
-			const resolvedQueryResult = useQuery(mockFn.success, [15])
+			const resolvedQueryResult = $query(mockFn.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('data')
 			expect(resolvedQueryResult.data).toBeTypeOf('number')
@@ -73,7 +73,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Not cached query
 		setTimeout(() => {
-			const resolvedQueryResult = useQuery(mockFn.success)
+			const resolvedQueryResult = $query(mockFn.success)
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('loading')
 			expect(resolvedQueryResult.loading).toBeTruthy()
@@ -86,7 +86,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(cacheStore).toBeDefined()
 
 		const state = cacheStore.getState()
-		const queryResult = state.useQuery(mockFn.error)
+		const queryResult = state.$query(mockFn.error)
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -100,7 +100,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(queryResult).not.toHaveProperty('error')
 
 		setTimeout(() => {
-			const rejectedQueryResult = state.useQuery(mockFn.error)
+			const rejectedQueryResult = state.$query(mockFn.error)
 			expect(rejectedQueryResult).toBeTypeOf('object')
 			expect(rejectedQueryResult).toHaveProperty('loading')
 			expect(rejectedQueryResult.loading).toBeFalsy()
@@ -114,42 +114,42 @@ describe('Zustand with Vanilla JS', () => {
 	})
 
 	it('invalidates cache', () => {
-		const { useQuery, invalidate } = cacheStore.getState()
+		const { $query, $invalidate } = cacheStore.getState()
 
-		const queryResult = useQuery(mockFn.successInvalidate)
+		const queryResult = $query(mockFn.successInvalidate)
 		expect(queryResult).not.toHaveProperty('data')
 
 		setTimeout(() => {
-			const resolvedQueryResult = useQuery(mockFn.successInvalidate)
+			const resolvedQueryResult = $query(mockFn.successInvalidate)
 			expect(resolvedQueryResult.data).equals(17)
-			invalidate(mockFn.successInvalidate)
+			$invalidate(mockFn.successInvalidate)
 		})
 
 		setTimeout(() => {
 			expect(mockFn.successInvalidate).toBeTypeOf('function')
-			const nextResult = useQuery(mockFn.successInvalidate)
+			const nextResult = $query(mockFn.successInvalidate)
 			expect(nextResult.data).equals(27)
 		})
 	})
 
 	it.skip('invalidates undefined cache', () => {
-		const { useQuery, invalidate } = cacheStore.getState()
+		const { $query, $invalidate } = cacheStore.getState()
 
-		const queryResult = useQuery(mockFn.successInvalidate)
+		const queryResult = $query(mockFn.successInvalidate)
 		expect(queryResult).not.toHaveProperty('data')
 
 		setTimeout(() => {
-			useQuery(mockFn.successInvalidate)
-			invalidate(mockFn.successInvalidate, [15])
+			$query(mockFn.successInvalidate)
+			$invalidate(mockFn.successInvalidate, [15])
 		})
 	})
 
 	it('manual fetch works correctly', () => {
 		expect(cacheStore).toBeDefined()
-		const { useQuery } = cacheStore.getState()
+		const { $query } = cacheStore.getState()
 
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-		const { data, loading, error, refetch } = useQuery(mockFn.success, [18], { autofetch: false })
+		const { data, loading, error, refetch } = $query(mockFn.success, [18], { autofetch: false })
 
 		expect(loading).toBeFalsy()
 		expect(data).toBeUndefined()
@@ -157,14 +157,14 @@ describe('Zustand with Vanilla JS', () => {
 		expect(refetch).toBeTypeOf('function')
 
 		void refetch()
-		const refetchResponse = useQuery(mockFn.success, [18])
+		const refetchResponse = $query(mockFn.success, [18])
 		expect(refetchResponse.loading).toBeTruthy()
 		expect(refetchResponse.data).toBeUndefined()
 		expect(refetchResponse.error).toBeUndefined()
 		expect(refetchResponse.refetch).toBeTypeOf('function')
 
 		setTimeout(() => {
-			const successfulQueryResult = useQuery(mockFn.success, [18])
+			const successfulQueryResult = $query(mockFn.success, [18])
 			expect(successfulQueryResult).toBeTypeOf('object')
 			expect(successfulQueryResult).toHaveProperty('loading')
 			expect(successfulQueryResult.loading).toBeFalsy()
@@ -176,38 +176,38 @@ describe('Zustand with Vanilla JS', () => {
 	})
 
 	it('suspended mode works with resolving Promise', () => {
-		const { useSuspendedQuery } = cacheStore.getState()
+		const { $suspenseQuery } = cacheStore.getState()
 
 		try {
-			useSuspendedQuery(mockFn.success, [15])
+			$suspenseQuery(mockFn.success, [15])
 		} catch (thrownObject) {
 			expect(thrownObject).toBeInstanceOf(Promise)
 			// @ts-expect-error
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 			thrownObject.then(() => {
-				const resolvedQueryResult = useSuspendedQuery(mockFn.success, [15])
+				const resolvedQueryResult = $suspenseQuery(mockFn.success, [15])
 				expect(resolvedQueryResult.data).equals(30)
 			})
 		}
 
 		setTimeout(() => {
-			const resolvedQueryResult = useSuspendedQuery(mockFn.success, [15])
+			const resolvedQueryResult = $suspenseQuery(mockFn.success, [15])
 			expect(resolvedQueryResult.data).equals(30)
 		})
 	})
 
 	it('suspended mode works with rejecting Promise', () => {
-		const { useSuspendedQuery } = cacheStore.getState()
+		const { $suspenseQuery } = cacheStore.getState()
 
 		try {
-			useSuspendedQuery(mockFn.error)
+			$suspenseQuery(mockFn.error)
 		} catch (thrownObject) {
 			expect(thrownObject).toBeInstanceOf(Promise)
 		}
 
 		setTimeout(() => {
 			try {
-				useSuspendedQuery(mockFn.error)
+				$suspenseQuery(mockFn.error)
 			} catch (error) {
 				expect(error).not.toBeInstanceOf(Promise)
 				expect(error).toBeTypeOf('string')
@@ -217,21 +217,21 @@ describe('Zustand with Vanilla JS', () => {
 	})
 
 	it('suspended mode works with long time resolving Promise', () => {
-		const { useSuspendedQuery } = cacheStore.getState()
+		const { $suspenseQuery } = cacheStore.getState()
 
 		try {
-			useSuspendedQuery(mockFn.waitForSuccess)
+			$suspenseQuery(mockFn.waitForSuccess)
 		} catch (thrownObject) {
 			expect(thrownObject).toBeInstanceOf(Promise)
 		}
 
 		setTimeout(() => {
 			try {
-				useSuspendedQuery(mockFn.waitForSuccess)
+				$suspenseQuery(mockFn.waitForSuccess)
 			} catch (thrownObject) {
 				expect(thrownObject).toBeInstanceOf(Promise)
 				setTimeout(() => {
-					const result = useSuspendedQuery(mockFn.waitForSuccess)
+					const result = $suspenseQuery(mockFn.waitForSuccess)
 					expect(result).toEqual(13)
 				}, 3500)
 			}
