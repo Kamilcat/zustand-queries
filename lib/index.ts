@@ -29,8 +29,7 @@ export const createClient =
 			queryArgs: Stringified<Parameters<A>>,
 			newState: Partial<QueryResponse<A>>
 		) {
-			// executeQuery() guarantees that cache for `queryFn` exists
-			const queryCache = getCache(queryFn)!
+			const queryCache = getCache(queryFn)
 			const queryResult = queryCache.get(queryArgs)!
 			const oldTimer = timers.get(queryResult.refetch)!
 			if (oldTimer[0]) clearTimeout(oldTimer[0])

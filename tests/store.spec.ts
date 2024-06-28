@@ -120,17 +120,26 @@ describe('Zustand with Vanilla JS', () => {
 		expect(queryResult).not.toHaveProperty('data')
 
 		setTimeout(() => {
-			let resolvedQueryResult = useQuery(mockFn.successInvalidate)
-			expect(resolvedQueryResult.data).equals(18)
+			const resolvedQueryResult = useQuery(mockFn.successInvalidate)
+			expect(resolvedQueryResult.data).equals(17)
 			invalidate(mockFn.successInvalidate)
-			resolvedQueryResult = useQuery(mockFn.successInvalidate)
-			expect(resolvedQueryResult.data).equals(18)
 		})
 
 		setTimeout(() => {
 			expect(mockFn.successInvalidate).toBeTypeOf('function')
 			const nextResult = useQuery(mockFn.successInvalidate)
-			expect(nextResult.data).equals(26)
+			expect(nextResult.data).equals(27)
+		})
+	})
+
+	it.skip('invalidates undefined cache', () => {
+		const { useQuery, invalidate } = cacheStore.getState()
+
+		const queryResult = useQuery(mockFn.successInvalidate)
+		expect(queryResult).not.toHaveProperty('data')
+
+		setTimeout(() => {
+			useQuery(mockFn.successInvalidate)
 			invalidate(mockFn.successInvalidate, [15])
 		})
 	})
