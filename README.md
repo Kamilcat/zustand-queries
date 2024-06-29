@@ -1,3 +1,4 @@
+# Zustand Queries
 Asynchronous server-state management for [Zustand](https://github.com/pmndrs/zustand) (React or Vanilla JS). TypeScript fully supported.
 
 ### Features
