@@ -1,5 +1,5 @@
 # Zustand Queries
-Asynchronous server-state management for [Zustand](https://github.com/pmndrs/zustand) (React or Vanilla JS). TypeScript fully supported.
+Asynchronous server-state management for [Zustand](https://github.com/pmndrs/zustand) (React or Vanilla JS). Tiny size and high perfomance. TypeScript fully supported.
 
 ### Features
 - Automatic cache control and invalidation
