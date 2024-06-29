@@ -5,6 +5,8 @@ import type { QueryResponse, SuspenseQueryResponse } from './types/query-respons
 import type { ZustandQueries } from './types/store'
 import { AsyncFunction, Stringified } from './types/utils'
 
+export type { QueryInit, QueryResponse, SuspenseQueryResponse, ZustandQueries }
+
 export const createCache =
 	<T extends QueryInit>(
 		queryStoreProto: T = {

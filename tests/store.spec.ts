@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createStore, StoreApi } from 'zustand'
-import { createCache } from '../lib'
-import { ZustandQueries } from '../lib/types/store'
+import { createCache, type ZustandQueries } from '../lib'
 
 const mockFn = {
 	success: vi.fn((integer: number) => Promise.resolve(integer * 2)),
