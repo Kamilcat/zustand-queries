@@ -1,4 +1,9 @@
 # Zustand Queries
+![NPM Version](https://img.shields.io/npm/v/zustand-queries)
+![npm bundle size](https://img.shields.io/bundlephobia/minzip/zustand-queries)
+![npm bundle size](https://img.shields.io/bundlephobia/min/zustand-queries)
+![NPM License](https://img.shields.io/npm/l/zustand-queries)
+
 Asynchronous server-state management for [Zustand](https://github.com/pmndrs/zustand) (React or Vanilla JS). Tiny size and high perfomance. TypeScript fully supported.
 
 ### Features
