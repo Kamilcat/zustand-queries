@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createStore, StoreApi } from 'zustand'
-import { createClient } from '../lib'
+import { createCache } from '../lib'
 import { ZustandQueries } from '../lib/types/store'
 
 const mockFn = {
@@ -23,7 +23,7 @@ let cacheStore: StoreApi<ZustandQueries>
 
 describe('Zustand with Vanilla JS', () => {
 	beforeEach(() => {
-		cacheStore = createStore(createClient())
+		cacheStore = createStore(createCache())
 	})
 
 	it('creates cache store properly', () => {
