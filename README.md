@@ -16,9 +16,13 @@ Asynchronous server-state management for [Zustand](https://github.com/pmndrs/zus
 ## Installing
 [Zustand](https://github.com/pmndrs/zustand) is peer dependency and required to be installed.
 
-### NPM
+#### NPM
 ```bash
 npm install zustand-queries --save
+```
+#### Yarn
+```bash
+yarn add zustand-queries
 ```
 
 ## Getting started
