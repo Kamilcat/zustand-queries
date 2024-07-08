@@ -161,6 +161,13 @@ describe('Zustand with Vanilla JS', () => {
 		})
 	})
 
+	it('manual fetch of non-existing query fails', async () => {
+		expect(cacheStore).toBeDefined()
+		const { $refetch } = cacheStore.getState()
+
+		await expect(() => $refetch(mockQuery.success)).rejects.toThrowError()
+	})
+
 	it('suspended mode works with resolving Promise', () => {
 		const { $suspenseQuery } = cacheStore.getState()
 
