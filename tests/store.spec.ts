@@ -1,22 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createStore, StoreApi } from 'zustand'
 import { createCache, type ZustandQueries } from '../lib'
 
-const mockFn = {
-	success: vi.fn((integer: number) => Promise.resolve(integer * 2)),
-	error: vi.fn().mockRejectedValue('something went wrong'),
-	errorThenSuccess: vi
-		.fn()
-		.mockRejectedValueOnce('error happend on first try')
-		.mockResolvedValue(1000),
-	successThenError: vi
-		.fn()
-		.mockResolvedValueOnce('post title')
-		.mockRejectedValue('500 server error'),
-	successInvalidate: vi.fn().mockResolvedValueOnce(17).mockResolvedValue(27),
-	waitForSuccess: vi.fn(() => new Promise((resolve) => setTimeout(() => resolve(12), 3000)))
-}
+import { mockQuery } from './mocks/queries'
 
 let cacheStore: StoreApi<ZustandQueries>
 
@@ -38,8 +25,8 @@ describe('Zustand with Vanilla JS', () => {
 	it('executes query and caches result for given arguments', () => {
 		const { $query } = cacheStore.getState()
 
-		// Call query mockFn.success with argument 15
-		const queryResult = $query(mockFn.success, [15])
+		// Call query mockQuery.success with argument 15
+		const queryResult = $query(mockQuery.success, [15])
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -54,7 +41,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Re-call to check if result for argument 15 is cached
 		setTimeout(() => {
-			const resolvedQueryResult = $query(mockFn.success, [15])
+			const resolvedQueryResult = $query(mockQuery.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('data')
 			expect(resolvedQueryResult.data).toBeTypeOf('number')
@@ -63,7 +50,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Call again to check if cached result didn't change
 		setTimeout(() => {
-			const resolvedQueryResult = $query(mockFn.success, [15])
+			const resolvedQueryResult = $query(mockQuery.success, [15])
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('data')
 			expect(resolvedQueryResult.data).toBeTypeOf('number')
@@ -72,7 +59,7 @@ describe('Zustand with Vanilla JS', () => {
 
 		// Not cached query
 		setTimeout(() => {
-			const resolvedQueryResult = $query(mockFn.success)
+			const resolvedQueryResult = $query(mockQuery.success)
 			expect(resolvedQueryResult).toBeTypeOf('object')
 			expect(resolvedQueryResult).toHaveProperty('loading')
 			expect(resolvedQueryResult.loading).toBeTruthy()
@@ -85,7 +72,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(cacheStore).toBeDefined()
 
 		const state = cacheStore.getState()
-		const queryResult = state.$query(mockFn.error)
+		const queryResult = state.$query(mockQuery.error)
 
 		expect(queryResult).toBeTypeOf('object')
 
@@ -99,7 +86,7 @@ describe('Zustand with Vanilla JS', () => {
 		expect(queryResult).not.toHaveProperty('error')
 
 		setTimeout(() => {
-			const rejectedQueryResult = state.$query(mockFn.error)
+			const rejectedQueryResult = state.$query(mockQuery.error)
 			expect(rejectedQueryResult).toBeTypeOf('object')
 			expect(rejectedQueryResult).toHaveProperty('loading')
 			expect(rejectedQueryResult.loading).toBeFalsy()
@@ -115,18 +102,18 @@ describe('Zustand with Vanilla JS', () => {
 	it('invalidates cache', () => {
 		const { $query, $invalidate } = cacheStore.getState()
 
-		const queryResult = $query(mockFn.successInvalidate)
+		const queryResult = $query(mockQuery.successInvalidate)
 		expect(queryResult).not.toHaveProperty('data')
 
 		setTimeout(() => {
-			const resolvedQueryResult = $query(mockFn.successInvalidate)
+			const resolvedQueryResult = $query(mockQuery.successInvalidate)
 			expect(resolvedQueryResult.data).equals(17)
-			$invalidate(mockFn.successInvalidate)
+			$invalidate(mockQuery.successInvalidate)
 		})
 
 		setTimeout(() => {
-			expect(mockFn.successInvalidate).toBeTypeOf('function')
-			const nextResult = $query(mockFn.successInvalidate)
+			expect(mockQuery.successInvalidate).toBeTypeOf('function')
+			const nextResult = $query(mockQuery.successInvalidate)
 			expect(nextResult.data).equals(27)
 		})
 	})
@@ -134,12 +121,12 @@ describe('Zustand with Vanilla JS', () => {
 	it.skip('invalidates undefined cache', () => {
 		const { $query, $invalidate } = cacheStore.getState()
 
-		const queryResult = $query(mockFn.successInvalidate)
+		const queryResult = $query(mockQuery.successInvalidate)
 		expect(queryResult).not.toHaveProperty('data')
 
 		setTimeout(() => {
-			$query(mockFn.successInvalidate)
-			$invalidate(mockFn.successInvalidate, [15])
+			$query(mockQuery.successInvalidate)
+			$invalidate(mockQuery.successInvalidate, [15])
 		})
 	})
 
@@ -148,7 +135,7 @@ describe('Zustand with Vanilla JS', () => {
 		const { $query } = cacheStore.getState()
 
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-		const { data, loading, error, refetch } = $query(mockFn.success, [18], { autofetch: false })
+		const { data, loading, error, refetch } = $query(mockQuery.success, [18], { autofetch: false })
 
 		expect(loading).toBeFalsy()
 		expect(data).toBeUndefined()
@@ -156,14 +143,14 @@ describe('Zustand with Vanilla JS', () => {
 		expect(refetch).toBeTypeOf('function')
 
 		void refetch()
-		const refetchResponse = $query(mockFn.success, [18])
+		const refetchResponse = $query(mockQuery.success, [18])
 		expect(refetchResponse.loading).toBeTruthy()
 		expect(refetchResponse.data).toBeUndefined()
 		expect(refetchResponse.error).toBeUndefined()
 		expect(refetchResponse.refetch).toBeTypeOf('function')
 
 		setTimeout(() => {
-			const successfulQueryResult = $query(mockFn.success, [18])
+			const successfulQueryResult = $query(mockQuery.success, [18])
 			expect(successfulQueryResult).toBeTypeOf('object')
 			expect(successfulQueryResult).toHaveProperty('loading')
 			expect(successfulQueryResult.loading).toBeFalsy()
@@ -178,19 +165,19 @@ describe('Zustand with Vanilla JS', () => {
 		const { $suspenseQuery } = cacheStore.getState()
 
 		try {
-			$suspenseQuery(mockFn.success, [15])
+			$suspenseQuery(mockQuery.success, [15])
 		} catch (thrownObject) {
 			expect(thrownObject).toBeInstanceOf(Promise)
 			// @ts-expect-error
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 			thrownObject.then(() => {
-				const resolvedQueryResult = $suspenseQuery(mockFn.success, [15])
+				const resolvedQueryResult = $suspenseQuery(mockQuery.success, [15])
 				expect(resolvedQueryResult.data).equals(30)
 			})
 		}
 
 		setTimeout(() => {
-			const resolvedQueryResult = $suspenseQuery(mockFn.success, [15])
+			const resolvedQueryResult = $suspenseQuery(mockQuery.success, [15])
 			expect(resolvedQueryResult.data).equals(30)
 		})
 	})
@@ -199,14 +186,14 @@ describe('Zustand with Vanilla JS', () => {
 		const { $suspenseQuery } = cacheStore.getState()
 
 		try {
-			$suspenseQuery(mockFn.error)
+			$suspenseQuery(mockQuery.error)
 		} catch (thrownObject) {
 			expect(thrownObject).toBeInstanceOf(Promise)
 		}
 
 		setTimeout(() => {
 			try {
-				$suspenseQuery(mockFn.error)
+				$suspenseQuery(mockQuery.error)
 			} catch (error) {
 				expect(error).not.toBeInstanceOf(Promise)
 				expect(error).toBeTypeOf('string')
@@ -219,18 +206,18 @@ describe('Zustand with Vanilla JS', () => {
 		const { $suspenseQuery } = cacheStore.getState()
 
 		try {
-			$suspenseQuery(mockFn.waitForSuccess)
+			$suspenseQuery(mockQuery.waitForSuccess)
 		} catch (thrownObject) {
 			expect(thrownObject).toBeInstanceOf(Promise)
 		}
 
 		setTimeout(() => {
 			try {
-				$suspenseQuery(mockFn.waitForSuccess)
+				$suspenseQuery(mockQuery.waitForSuccess)
 			} catch (thrownObject) {
 				expect(thrownObject).toBeInstanceOf(Promise)
 				setTimeout(() => {
-					const result = $suspenseQuery(mockFn.waitForSuccess)
+					const result = $suspenseQuery(mockQuery.waitForSuccess)
 					expect(result).toEqual(13)
 				}, 3500)
 			}
