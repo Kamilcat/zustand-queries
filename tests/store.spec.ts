@@ -118,7 +118,7 @@ describe('Zustand with Vanilla JS', () => {
 		})
 	})
 
-	it.skip('invalidates undefined cache', () => {
+	it('invalidates undefined cache', () => {
 		const { $query, $invalidate } = cacheStore.getState()
 
 		const queryResult = $query(mockQuery.successInvalidate)
