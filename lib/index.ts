@@ -88,7 +88,12 @@ export const createCache =
 			$refetch: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>
-			): Promise<Awaited<ReturnType<A>>> => refetchQuery(queryFn, args, serialaze(args)),
+			): Promise<Awaited<ReturnType<A>>> => {
+				const queryArgs = serialaze(args)
+				return getCache(queryFn).has(queryArgs)
+					? refetchQuery(queryFn, args, queryArgs)
+					: Promise.reject(new ReferenceError('$refetch of non-existing query'))
+			},
 			$invalidate<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
