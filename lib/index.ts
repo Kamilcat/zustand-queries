@@ -94,8 +94,11 @@ export const createCache =
 				args = [] as unknown as Parameters<A>,
 				data?: Awaited<ReturnType<A>>
 			) {
-				if (data) setCache(queryFn, serialaze(args), { data, loading: false })
-				else void refetchQuery(queryFn, args, serialaze(args))
+				const queryArgs = serialaze(args)
+				if (getCache(queryFn).has(queryArgs)) {
+					if (data) setCache(queryFn, queryArgs, { data, loading: false })
+					else void refetchQuery(queryFn, args, queryArgs)
+				}
 			},
 			$suspenseQuery: <A extends AsyncFunction>(
 				queryFn: A,
