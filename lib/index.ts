@@ -15,24 +15,24 @@ export const createCache =
 		} as T
 	): StateCreator<ZustandQueries> =>
 	(set, get) => {
-		const timers = new WeakMap<() => Promise<any>, [timerID: number, delay: number]>()
+		let timers = new WeakMap<() => Promise<any>, [timerID: number, delay: number]>()
 
 		// @ts-expect-error
-		const serialaze: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
+		let serialaze: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
 
-		const updateState = () => set((state) => ({ $cache: new Map(state.$cache) as CacheMap }))
+		let updateState = () => set(({ $cache }) => ({ $cache: new Map($cache) as CacheMap }))
 
-		const getCache = <A extends AsyncFunction>(queryFn: A): CacheRecord<A> =>
+		let getCache = <A extends AsyncFunction>(queryFn: A): CacheRecord<A> =>
 			get().$cache.get(queryFn) ?? get().$cache.set(queryFn, new Map()).get(queryFn)!
 
-		function setCache<A extends AsyncFunction>(
+		let setCache = <A extends AsyncFunction>(
 			queryFn: A,
 			queryArgs: Stringified<Parameters<A>>,
 			newState: Partial<QueryResponse<A>>
-		) {
-			const queryCache = getCache(queryFn)
-			const queryResult = queryCache.get(queryArgs)!
-			const oldTimer = timers.get(queryResult.refetch)!
+		) => {
+			let queryCache = getCache(queryFn)
+			let queryResult = queryCache.get(queryArgs)!
+			let oldTimer = timers.get(queryResult.refetch)!
 			if (oldTimer[0]) clearTimeout(oldTimer[0])
 			queryCache.set(queryArgs, { ...queryResult, ...newState })
 			oldTimer[0] = setTimeout(() => {
@@ -42,12 +42,12 @@ export const createCache =
 			updateState()
 		}
 
-		function refetchQuery<A extends AsyncFunction>(
+		let refetchQuery = <A extends AsyncFunction>(
 			queryFn: A,
 			args = [] as unknown as Parameters<A>,
 			queryArgs: Stringified<Parameters<A>>
-		): Promise<Awaited<ReturnType<A>>> {
-			const promise = queryFn.apply(null, args).then(
+		): Promise<Awaited<ReturnType<A>>> => {
+			let promise = queryFn.apply(null, args).then(
 				(data: Awaited<ReturnType<typeof queryFn>>) => (
 					setCache(queryFn, queryArgs, { data, loading: false }), data
 				),
@@ -57,25 +57,25 @@ export const createCache =
 			return promise as Promise<Awaited<ReturnType<A>>>
 		}
 
-		function executeQuery<A extends AsyncFunction, S extends boolean>(
+		let executeQuery = <A extends AsyncFunction, S extends boolean>(
 			suspense: S,
 			queryFn: A,
 			args = [] as unknown as Parameters<A>,
 			queryInit?: QueryInit
-		) {
-			const queryConfig = queryInit
+		) => {
+			let queryConfig = queryInit
 				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
 				: (queryStoreProto as QueryInit)
 
-			const queryCache = getCache(queryFn)
-			const queryArgs = serialaze(args)
+			let queryCache = getCache(queryFn)
+			let queryArgs = serialaze(args)
 			if (!queryCache.has(queryArgs)) {
-				const refetch = () => refetchQuery(queryFn, args, queryArgs)
+				let refetch = () => refetchQuery(queryFn, args, queryArgs)
 				queryCache.set(queryArgs, { promise: Promise.resolve(), refetch })
 				timers.set(refetch, [0, queryConfig.lifetime!])
 				if (queryConfig.autofetch) void refetch()
 			}
-			const queryResult = queryCache.get(queryArgs)!
+			let queryResult = queryCache.get(queryArgs)!
 			if (suspense) {
 				if ('error' in queryResult) throw queryResult.error
 				if (!('data' in queryResult)) throw queryResult.promise
@@ -85,21 +85,21 @@ export const createCache =
 
 		return {
 			$cache: new Map() as CacheMap,
-			$refetch: <A extends AsyncFunction>(
+			$refetch<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>
-			): Promise<Awaited<ReturnType<A>>> => {
-				const queryArgs = serialaze(args)
+			): Promise<Awaited<ReturnType<A>>> {
+				let queryArgs = serialaze(args)
 				return getCache(queryFn).has(queryArgs)
 					? refetchQuery(queryFn, args, queryArgs)
-					: Promise.reject(new ReferenceError('$refetch of non-existing query'))
+					: Promise.reject(new Error('query not found'))
 			},
 			$invalidate<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				data?: Awaited<ReturnType<A>>
 			) {
-				const queryArgs = serialaze(args)
+				let queryArgs = serialaze(args)
 				if (getCache(queryFn).has(queryArgs)) {
 					if (data) setCache(queryFn, queryArgs, { data, loading: false })
 					else void refetchQuery(queryFn, args, queryArgs)
