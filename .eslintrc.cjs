@@ -29,6 +29,7 @@ module.exports = {
 		semi: ['error', 'never'],
 		'linebreak-style': 0,
 		quotes: ['error', 'single'],
+		'prefer-const': 'off',
 		'prefer-spread': 'off',
 		'no-else-return': 'off',
 		'unicorn/better-regex': 'error',
