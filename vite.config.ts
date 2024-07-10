@@ -7,15 +7,14 @@ export default defineConfig({
 	build: {
 		lib: {
 			entry: resolve(__dirname, 'lib/index.ts'),
-			name: 'ZustandReactQuery',
+			name: 'ZustandQueries',
 			fileName: 'index'
 		},
 		rollupOptions: {
-			external: ['zustand', '@tanstack/react-query'],
+			external: ['zustand'],
 			output: {
 				globals: {
-					zustand: 'Zustand',
-					'@tanstack/react-query': 'ReactQuery'
+					zustand: 'Zustand'
 				}
 			}
 		}
