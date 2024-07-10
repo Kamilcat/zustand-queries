@@ -4437,7 +4437,7 @@ z-schema@~5.0.2:
   optionalDependencies:
     commander "^9.4.1"
 
-zustand@5.0.0-beta.1:
-  version "5.0.0-beta.1"
-  resolved "https://registry.npmjs.org/zustand/-/zustand-5.0.0-beta.1.tgz"
-  integrity sha512-66FJl9Pa2jWfd7NWUi3rmI6+Nx1VG8v9XAsDnYEVntM8lG5w/TjWdNyqxyyL+qSvTnh++b6bNQPhfTcOHyB3YQ==
+zustand@^5.0.0-beta.2:
+  version "5.0.0-beta.2"
+  resolved "https://registry.npmjs.org/zustand/-/zustand-5.0.0-beta.2.tgz"
+  integrity sha512-GR6XL/wrPviBARQd9JrTddjfmU1ij0w/fu6Ahp7GV3HBdqmWQHfNY/gc0UfVLj4DdULAU4O2qJXfbHDqkj8+dg==
