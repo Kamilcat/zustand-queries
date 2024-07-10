@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createStore, StoreApi } from 'zustand'
 import { createCache, type ZustandQueries } from '../lib'
@@ -10,6 +10,10 @@ let cacheStore: StoreApi<ZustandQueries>
 describe('Zustand with Vanilla JS', () => {
 	beforeEach(() => {
 		cacheStore = createStore(createCache())
+	})
+
+	afterEach(() => {
+		vi.useRealTimers()
 	})
 
 	it('creates cache store properly', () => {
@@ -66,6 +70,46 @@ describe('Zustand with Vanilla JS', () => {
 			expect(resolvedQueryResult).not.toHaveProperty('data')
 			expect(resolvedQueryResult).not.toHaveProperty('error')
 		})
+	})
+
+	it.skip('automatically delete cache after end of its lifetime', () => {
+		vi.useFakeTimers({ toFake: ['nextTick'] })
+
+		const { $query } = cacheStore.getState()
+
+		// Call query mockQuery.success with argument 15
+		const queryResult = $query(mockQuery.success, [15])
+
+		vi.advanceTimersByTime(1)
+
+		expect(queryResult).toBeTypeOf('object')
+
+		expect(queryResult).toHaveProperty('loading')
+		expect(queryResult.loading).toBeTruthy()
+
+		expect(queryResult).toHaveProperty('promise')
+		expect(queryResult.promise).toBeInstanceOf(Promise)
+
+		expect(queryResult).not.toHaveProperty('data')
+		expect(queryResult).not.toHaveProperty('error')
+
+		// Re-call to check if result for argument 15 is cached
+		// setTimeout(() => {
+		// 	const resolvedQueryResult = $query(mockQuery.success, [15])
+		// 	expect(resolvedQueryResult).toBeTypeOf('object')
+		// 	expect(resolvedQueryResult).toHaveProperty('data')
+		// 	expect(resolvedQueryResult.data).toBeTypeOf('number')
+		// 	expect(resolvedQueryResult.data).equals(30)
+		// })
+
+		// Check if cache is deleted
+		setTimeout(() => {
+			const resolvedQueryResult = $query(mockQuery.success, [15])
+			expect(resolvedQueryResult).toBeTypeOf('object')
+			expect(resolvedQueryResult).not.toHaveProperty('data')
+		}, 1)
+
+		vi.advanceTimersByTime(1000)
 	})
 
 	it('serves promise caught error', () => {
