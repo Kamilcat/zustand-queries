@@ -15,16 +15,42 @@ export const createCache =
 		} as T
 	): StateCreator<ZustandQueries> =>
 	(set, get) => {
+		/**
+		 * Lifetime timers for cache records
+		 */
 		let timers = new WeakMap<() => Promise<any>, [timerID: number, delay: number]>()
 
+		/**
+		 * Serialize function arguments array to string
+		 * with keeping original array type in mind
+		 */
 		// @ts-expect-error
-		let serialaze: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
+		let serialize: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
 
+		/**
+		 * Force Zustand's store state update
+		 */
 		let updateState = () => set(({ $cache }) => ({ $cache: new Map($cache) as CacheMap }))
 
+		/**
+		 * Get cache record for provided async query function.
+		 * Cache record is `Map` object of stringified function argument
+		 * paired with results for those arguments
+		 * @param queryFn Async query function
+		 * @returns Cache record for query function (`Map` object)
+		 */
 		let getCache = <A extends AsyncFunction>(queryFn: A): CacheRecord<A> =>
 			get().$cache.get(queryFn) ?? get().$cache.set(queryFn, new Map()).get(queryFn)!
 
+		/**
+		 * Update cache record for provided async function
+		 * with specific arguments set.
+		 * Cache record for query must be created by `createQuery`
+		 * before call of `setCache`
+		 * @param queryFn Async query function
+		 * @param queryArgs Stringified function arguments
+		 * @param newState New cache record
+		 */
 		let setCache = <A extends AsyncFunction>(
 			queryFn: A,
 			queryArgs: Stringified<Parameters<A>>,
@@ -42,7 +68,14 @@ export const createCache =
 			updateState()
 		}
 
-		let refetchQuery = <A extends AsyncFunction>(
+		/**
+		 * Manual query fetch
+		 * @param queryFn Async query function
+		 * @param args Array of query function arguments
+		 * @param queryArgs Stringified function arguments
+		 * @returns Promise for query result
+		 */
+		let fetchQuery = <A extends AsyncFunction>(
 			queryFn: A,
 			args = [] as unknown as Parameters<A>,
 			queryArgs: Stringified<Parameters<A>>
@@ -57,7 +90,15 @@ export const createCache =
 			return promise as Promise<Awaited<ReturnType<A>>>
 		}
 
-		let executeQuery = <A extends AsyncFunction, S extends boolean>(
+		/**
+		 * Create a query for provided async function with specific argument set
+		 * @param suspense Is React suspense-mode enabled
+		 * @param queryFn Async query function
+		 * @param args Array of query function arguments
+		 * @param queryInit Query configuration
+		 * @returns Query response object
+		 */
+		let createQuery = <A extends AsyncFunction, S extends boolean>(
 			suspense: S,
 			queryFn: A,
 			args = [] as unknown as Parameters<A>,
@@ -68,9 +109,9 @@ export const createCache =
 				: (queryStoreProto as QueryInit)
 
 			let queryCache = getCache(queryFn)
-			let queryArgs = serialaze(args)
+			let queryArgs = serialize(args)
 			if (!queryCache.has(queryArgs)) {
-				let refetch = () => refetchQuery(queryFn, args, queryArgs)
+				let refetch = () => fetchQuery(queryFn, args, queryArgs)
 				queryCache.set(queryArgs, { promise: Promise.resolve(), refetch })
 				timers.set(refetch, [0, queryConfig.lifetime!])
 				if (queryConfig.autofetch) void refetch()
@@ -88,10 +129,10 @@ export const createCache =
 			$refetch<A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>
-			): Promise<Awaited<ReturnType<A>>> {
-				let queryArgs = serialaze(args)
+			): Promise<Awaited<ReturnType<A>> | void> {
+				let queryArgs = serialize(args)
 				return getCache(queryFn).has(queryArgs)
-					? refetchQuery(queryFn, args, queryArgs)
+					? fetchQuery(queryFn, args, queryArgs)
 					: Promise.reject(new Error('query not found'))
 			},
 			$invalidate<A extends AsyncFunction>(
@@ -99,21 +140,21 @@ export const createCache =
 				args = [] as unknown as Parameters<A>,
 				data?: Awaited<ReturnType<A>>
 			) {
-				let queryArgs = serialaze(args)
+				let queryArgs = serialize(args)
 				if (getCache(queryFn).has(queryArgs)) {
 					if (data) setCache(queryFn, queryArgs, { data, loading: false })
-					else void refetchQuery(queryFn, args, queryArgs)
+					else void fetchQuery(queryFn, args, queryArgs)
 				}
 			},
 			$suspenseQuery: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				queryInit?: QueryInit
-			) => executeQuery(true, queryFn, args, queryInit),
+			) => createQuery(true, queryFn, args, queryInit),
 			$query: <A extends AsyncFunction>(
 				queryFn: A,
 				args = [] as unknown as Parameters<A>,
 				queryInit?: QueryInit
-			) => executeQuery(false, queryFn, args, queryInit)
+			) => createQuery(false, queryFn, args, queryInit)
 		}
 	}
