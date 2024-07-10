@@ -7,17 +7,22 @@ import { AsyncFunction, Stringified } from './types/utils'
 
 export type { QueryInit, QueryResponse, SuspenseQueryResponse, ZustandQueries }
 
-export const createCache =
-	<T extends QueryInit>(
-		queryStoreProto: T = {
+export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQueries> {
+	/** Merge query configuration objects */
+	let mergeConfigs = (firstObj: QueryInit, secondObj?: QueryInit): QueryInit =>
+		secondObj ? (Object.setPrototypeOf(secondObj, firstObj) as QueryInit) : firstObj
+
+	/** Basic query configuration */
+	let queryStoreProto = mergeConfigs(
+		{
 			autofetch: true,
 			lifetime: 300000
-		} as T
-	): StateCreator<ZustandQueries> =>
-	(set, get) => {
-		/**
-		 * Lifetime timers for cache records
-		 */
+		} as QueryInit,
+		queryStoreInit
+	)
+
+	return (set, get) => {
+		/** Lifetime timers for cache records */
 		let timers = new WeakMap<() => Promise<any>, [timerID: number, delay: number]>()
 
 		/**
@@ -27,9 +32,7 @@ export const createCache =
 		// @ts-expect-error
 		let serialize: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
 
-		/**
-		 * Force Zustand's store state update
-		 */
+		/** Force Zustand's store state update */
 		let updateState = () => set(({ $cache }) => ({ $cache: new Map($cache) as CacheMap }))
 
 		/**
@@ -104,10 +107,7 @@ export const createCache =
 			args = [] as unknown as Parameters<A>,
 			queryInit?: QueryInit
 		) => {
-			let queryConfig = queryInit
-				? (Object.setPrototypeOf(queryInit, queryStoreProto) as QueryInit)
-				: (queryStoreProto as QueryInit)
-
+			let queryConfig = mergeConfigs(queryStoreProto, queryInit)
 			let queryCache = getCache(queryFn)
 			let queryArgs = serialize(args)
 			if (!queryCache.has(queryArgs)) {
@@ -158,3 +158,4 @@ export const createCache =
 			) => createQuery(false, queryFn, args, queryInit)
 		}
 	}
+}
