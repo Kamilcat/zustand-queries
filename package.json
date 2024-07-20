@@ -50,7 +50,8 @@
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --ignore-path .gitignore",
     "lint:fix": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "test:unit": "vitest --coverage",
-    "format": "prettier --write lib/"
+    "format": "prettier --write lib/",
+    "release": "npm run build && npm publish"
   },
   "engines": {
     "node": ">=18.0.0"
