@@ -83,12 +83,19 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 			args = [] as unknown as Parameters<A>,
 			queryArgs: Stringified<Parameters<A>>
 		): Promise<Awaited<ReturnType<A>>> => {
-			let promise = queryFn.apply(null, args).then(
-				(data: Awaited<ReturnType<typeof queryFn>>) => (
-					setCache(queryFn, queryArgs, { data, loading: false }), data
-				),
-				(error: unknown) => setCache(queryFn, queryArgs, { error, loading: false })
-			)
+			let retryCounter = 0
+			let runPromise = () =>
+				queryFn.apply(null, args).then(
+					(data: Awaited<ReturnType<typeof queryFn>>) => (
+						setCache(queryFn, queryArgs, { data, loading: false }), data
+					),
+					(error: unknown) => {
+						// eslint-disable-next-line @typescript-eslint/no-misused-promises
+						if (++retryCounter < 5) setTimeout(runPromise, retryCounter ^ (2 * 1000))
+						else setCache(queryFn, queryArgs, { error, loading: false })
+					}
+				)
+			let promise = runPromise()
 			setCache(queryFn, queryArgs, { promise, loading: true })
 			return promise as Promise<Awaited<ReturnType<A>>>
 		}
