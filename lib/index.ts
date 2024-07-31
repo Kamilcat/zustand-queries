@@ -85,7 +85,7 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 		): Promise<Awaited<ReturnType<A>>> => {
 			let retryCounter = 0
 			let runPromise = () =>
-				queryFn.apply(null, args).then(
+				queryFn(...args).then(
 					(data: Awaited<ReturnType<typeof queryFn>>) => (
 						setCache(queryFn, queryArgs, { data, loading: false }), data
 					),
