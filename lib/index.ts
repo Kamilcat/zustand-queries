@@ -30,7 +30,7 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 		 * with keeping original array type in mind
 		 */
 		// @ts-expect-error
-		let serialize: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
+		let serialize: <Args extends any[]>(args: Args) => Stringified<Args> = (args) => args.join(',')
 
 		/** Force Zustand's store state update */
 		let updateState = () => set(({ $cache }) => ({ $cache: new Map($cache) as CacheMap }))
@@ -91,7 +91,7 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 					),
 					(error: unknown) => {
 						// eslint-disable-next-line @typescript-eslint/no-misused-promises
-						if (++retryCounter < 5) setTimeout(runPromise, retryCounter ^ (2 * 1000))
+						if (++retryCounter < 5) setTimeout(runPromise, 2 ** retryCounter * 1000)
 						else setCache(queryFn, queryArgs, { error, loading: false })
 					}
 				)
