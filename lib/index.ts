@@ -33,7 +33,7 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 		let serialize: <Args extends any[]>(args: Args) => Stringified<Args> = (args) => args.join(',')
 
 		/** Force Zustand's store state update */
-		let updateState = () => set(({ $cache }) => ({ $cache: new Map($cache) as CacheMap }))
+		let updateState = () => set((state) => ({ $cache: new Map(state.$cache) as CacheMap }))
 
 		/**
 		 * Get cache record for provided async query function.
@@ -76,12 +76,14 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 		 * @param queryFn Async query function
 		 * @param args Array of query function arguments
 		 * @param queryArgs Stringified function arguments
+		 * @param queryInit Query init configuration
 		 * @returns Promise for query result
 		 */
 		let fetchQuery = <A extends AsyncFunction>(
 			queryFn: A,
 			args = [] as unknown as Parameters<A>,
-			queryArgs: Stringified<Parameters<A>>
+			queryArgs: Stringified<Parameters<A>>,
+			queryInit: QueryInit = queryStoreProto
 		): Promise<Awaited<ReturnType<A>>> => {
 			let retryCounter = 0
 			let runPromise = () =>
@@ -90,8 +92,9 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 						setCache(queryFn, queryArgs, { data, loading: false }), data
 					),
 					(error: unknown) => {
-						// eslint-disable-next-line @typescript-eslint/no-misused-promises
-						if (++retryCounter < 5) setTimeout(runPromise, 2 ** retryCounter * 1000)
+						if (queryInit.retry && ++retryCounter < 5)
+							// eslint-disable-next-line @typescript-eslint/no-misused-promises
+							setTimeout(runPromise, 2 ** retryCounter * 1000)
 						else setCache(queryFn, queryArgs, { error, loading: false })
 					}
 				)
@@ -118,7 +121,7 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 			let queryCache = getCache(queryFn)
 			let queryArgs = serialize(args)
 			if (!queryCache.has(queryArgs)) {
-				let refetch = () => fetchQuery(queryFn, args, queryArgs)
+				let refetch = () => fetchQuery(queryFn, args, queryArgs, queryConfig)
 				queryCache.set(queryArgs, { promise: Promise.resolve(), refetch })
 				timers.set(refetch, [0, queryConfig.lifetime!])
 				if (queryConfig.autofetch) void refetch()

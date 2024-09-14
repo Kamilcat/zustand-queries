@@ -9,7 +9,9 @@ export interface QueryInit {
 	 */
 	refetch?: boolean
 
-	/** Re-try after catching error */
+	/** Re-try after catching error
+	 * @default false
+	 */
 	retry?: boolean
 
 	/** Return previous stale value, while fetching new one
