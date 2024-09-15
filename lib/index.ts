@@ -30,7 +30,7 @@ export function createCache(queryStoreInit?: QueryInit): StateCreator<ZustandQue
 		 * with keeping original array type in mind
 		 */
 		// @ts-expect-error
-		let serialize: <Args extends any[]>(args: Args) => Stringified<Args> = (args) => args.join(',')
+		let serialize: <Args extends any[]>(args: Args) => Stringified<Args> = JSON.stringify
 
 		/** Force Zustand's store state update */
 		let updateState = () => set((state) => ({ $cache: new Map(state.$cache) as CacheMap }))
